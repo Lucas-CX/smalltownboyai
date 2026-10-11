@@ -7,12 +7,14 @@ Use `pnpm cf:deploy` after security review and operator deployment approval. Do 
 Commit and push the reviewed release first. The script requires a clean Git checkout before building and before upload, and records the full Git SHA in the Cloudflare version message (with a short SHA tag). Ignored local production configuration is validated separately; it is not included in Git. After deployment, verify the active Cloudflare version message against GitHub main.
 
 1. Before building, `.env.production` and `wrangler.jsonc` must agree on public app/SEO URLs, indexing and preview flags. Public releases require indexing enabled, preview disabled, HTTPS, a non-placeholder origin, and a matching Worker route.
-2. Run gate regression tests, build, then validate the generated `.output/server/wrangler.json` again before publishing.
+2. Run the official npm dependency audit (moderate or higher findings and registry failures block release), gate regression tests, payment/generation/conversion regression tests, TypeScript checks and build. Then validate the generated `.output/server/wrangler.json` again before publishing. These checks run for previews too.
 3. After publishing, fetch robots using Googlebot, Google-InspectionTool and OAI-SearchBot user agents. Verify public access, private-path crawl restrictions, correct sitemap declaration, and a robots cache lifetime of at most 300 seconds.
 4. Parse sitemap XML and validate namespace, nonempty unique same-origin canonical URLs, no private routes, no DTD. Fetch every listed page and verify HTTP 200, HTML, canonical and no index-blocking headers/meta. Redirects, challenges and HTTP errors fail the gate. Retry the live gate at most three times for edge propagation.
 5. Run the project's full `seo:test` against production to catch missing public pages, locale metadata and template regressions. Submit IndexNow only after both checks pass.
 
 A post-deploy failure means the Worker IS already deployed, but release verification FAILED. Do not report success, automatically roll back, or resubmit repeatedly. Investigate the specific error.
+
+Offline regression tests use `NODE_ENV=test` and do not receive values loaded from `.env.production`. Production flags and credentials are passed only to the build, publishing and subsequent live checks. Production sandbox protections must remain enabled; do not relax them to run fixtures.
 
 ## Isolated previews
 
@@ -30,11 +32,23 @@ User-agent simulation does not prove a request came from Google. The CLI always 
 
 ## Commands
 
+`pnpm security:audit` audits the entire lockfile, including development dependencies, against the official npm registry. Do not suppress advisories to pass this gate. Source/security diff review remains required before committing; dependency audit is not a substitute.
+
 `pnpm seo:preflight` validates local production configuration without publishing.
 
 `pnpm seo:gate:test` runs offline failure-case tests.
 
 `pnpm seo:live https://your-domain` checks public origin responses without publishing or submitting URLs.
+
+## Dependency remediation (2026-10-12)
+
+- Upgraded authentication, ORM, image metadata parsing, Markdown, database driver and ID dependencies to patched releases. Kept Better Auth on the 1.6 release line.
+- Aligned Tiptap packages and their optional menu peers to 3.30.5.
+- Removed the unused installed `shadcn` CLI dependency, including its unpatched `braces` chain. Existing generated UI components are unchanged; intentional component scaffolding still uses `npx shadcn add`.
+- Added targeted transitive overrides for audited vulnerabilities. The esbuild override spans older tool dependency ranges and therefore requires Node/Cloudflare builds, tests and Drizzle/Wrangler CLI checks whenever it is updated. The sharp override also covers the unused Next peer dependency; the application remains TanStack Start.
+- Official npm full-lockfile audit changed from 165 advisory entries to zero known advisories. No advisory suppression or production-only filtering is used. This is a dependency database result, not proof that every application behavior is secure.
+- Offline suites passed: 40 business tests, 59 conversion tests, 7 SEO gate tests; TypeScript and Node/Cloudflare builds passed. These fixture tests do not charge payments or invoke paid generation.
+- Source diff review and secret/ignore scans are still mandatory before every commit. Google fetching/indexing remains a separate live acceptance step.
 
 ## Incident comparison (2026-10-12)
 

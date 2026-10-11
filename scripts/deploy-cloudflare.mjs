@@ -31,6 +31,8 @@ function verifyCheckout() {
 }
 verifyCheckout();
 console.log(`Deploying Git revision ${revision}`);
+// Fixture tests must not inherit production credentials or production-only guards.
+const checkEnv = { ...process.env, NODE_ENV: 'test' };
 Object.assign(process.env, releaseEnv);
 process.env.VITE_PREVIEW_ONLY = releaseEnv.VITE_PREVIEW_ONLY ?? 'false';
 process.env.NODE_ENV = 'production';
@@ -43,7 +45,11 @@ if (process.platform === 'win32') {
   process.env.RAYON_NUM_THREADS ||= '2';
 }
 for (const args of [
+  ['security:audit'],
   ['seo:gate:test'],
+  ['dance:test'],
+  ['dance:conversion:test'],
+  ['exec', 'tsc', '--noEmit'],
   ['build'],
   [
     'exec',
@@ -55,13 +61,13 @@ for (const args of [
     `git:${revision}`,
   ],
 ]) {
-  if (args[0] === 'exec') {
+  if (args[0] === 'exec' && args[1] === 'wrangler') {
     preflight(releaseEnv, readConfig('.output/server/wrangler.json'), preview);
     verifyCheckout();
   }
   const result = spawnSync('pnpm', args, {
     stdio: 'inherit',
-    env: process.env,
+    env: args[0] === 'build' || args[1] === 'wrangler' ? process.env : checkEnv,
     shell: process.platform === 'win32',
     windowsHide: true,
   });
