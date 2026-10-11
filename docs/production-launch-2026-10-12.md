@@ -21,3 +21,25 @@
 This release does not charge a card or submit a paid Kie generation. The final real payment → delivery acceptance remains to be performed by the user. Test success and valid provider credentials do not prove settlement or real callback delivery. Indexability and an IndexNow receipt do not prove search-engine indexing.
 
 Release logs and live verification evidence are stored under ignored `output/setup/launch-*`. Production flags and credential files remain gitignored.
+
+## Final production evidence
+
+- Production Worker version: `ad4a1cc0-46b5-4ab8-a106-aeecb1d730eb` (100% traffic). Source release commit: `94e3b2c`.
+- Read back Cloudflare runtime flags: preview false, indexing true, payment stripe-live, generation kie; D1/R2/Images bindings present; schedules empty and no Durable Object binding.
+- Online SEO test passed for public template pages, metadata, discovery, and retired routes. IndexNow returned HTTP 200 for 14 URLs after the final release; receipt only, not indexing proof.
+- Anonymous purchase/generation/file/refresh APIs return 401; forged Kie callback returns 401; invalid Stripe webhook returns 400; anonymous admin health returns 403. Public generation settings report simulation false.
+- Browser checks: enabled $7.90/$19.90/$29.90 offers; anonymous purchase goes to sign-in with the purchase-resume destination. Google OAuth reaches Google's account chooser. Home at 390/768/1440 and Chinese pricing at 390 have no horizontal overflow; light/dark system preferences retain the intentional dark product theme. Final Chinese pricing laboratory trace: LCP 2000ms, CLS 0, no throttling; no field-performance claim.
+
+## Email registration follow-up
+
+The user requested email registration without verification. Set both DB admin settings and runtime fallbacks to `email_auth_enabled=true` / `EMAIL_AUTH_ENABLED=true` and `email_verification_enabled=false` / `EMAIL_VERIFICATION_ENABLED=false`. Google login remains enabled. No application logic change was needed.
+
+Live API verification with a temporary QA account:
+
+- Email signup HTTP 200, `emailVerified=false`, immediately authenticated.
+- Sign-out and password sign-in HTTP 200, without a verification email.
+- Authenticated balance is zero, payment mode stripe-live, simulation false.
+- Site checkout API created a real live Stripe Checkout session: 790 USD cents, 150 account credits, pending/unpaid. No card was entered and no payment was completed.
+- Expired that exact unpaid Checkout session through Stripe, then removed only the temporary QA user's events/account and cascading pending records. No paid orders or customer records were changed.
+
+The final paid generation, real Kie completion callback and delivered-video acceptance are still unperformed in this release review. The user intends to run that real flow next.
