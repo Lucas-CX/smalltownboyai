@@ -1,0 +1,142 @@
+/* Additional content uses the existing dance page palette and typography. */
+.dance-role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 28px 0;
+}
+.dance-role-grid figure {
+  margin: 0;
+  min-width: 0;
+}
+.dance-role-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.dance-role-grid .dance-role-caption {
+  min-height: 0;
+  color: var(--accent);
+}
+.dance-role-grid img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 480 / 854;
+  object-fit: cover;
+  border-radius: 8px;
+}
+.dance-role-grid figcaption {
+  margin-top: 12px;
+  font-weight: 600;
+}
+.dance-role-grid p {
+  min-height: 6em;
+  font-size: 13px;
+}
+.dance-examples > .dance-example-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.dance-examples .dance-example-grid article {
+  display: block;
+  min-width: 0;
+  border: 1px solid var(--line);
+  padding: 24px;
+}
+.dance-example-player {
+  display: block;
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 480 / 854;
+  object-fit: contain;
+  background: var(--paper);
+  margin: 24px auto;
+  border-radius: 8px;
+}
+.dance-example-grid a,
+.dance-examples > a,
+.dance-content-link {
+  color: var(--accent);
+  font-size: 13px;
+}
+.dance-content-intro {
+  max-width: 760px;
+}
+@media (min-width: 1001px) {
+  .dance-examples > .dance-example-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.dance-learn-more nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 24px;
+  margin-top: 24px;
+}
+.dance-learn-more nav a {
+  color: var(--accent);
+  font-size: 13px;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.dance-how .dance-guide-link {
+  margin-left: 24px;
+}
+.dance-swipe-hint {
+  display: none;
+}
+@media (max-width: 720px) {
+  .dance-examples > .dance-role-grid {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 12px;
+  }
+  .dance-role-grid figure {
+    flex: 0 0 88%;
+    max-width: none;
+    margin: 0;
+    scroll-snap-align: start;
+  }
+  .dance-role-grid p {
+    min-height: 0;
+  }
+  .dance-examples > .dance-example-grid {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 12px;
+  }
+  .dance-examples .dance-example-grid article {
+    flex: 0 0 88%;
+    padding: 16px;
+    scroll-snap-align: start;
+  }
+  .dance-example-player {
+    max-width: 220px;
+    margin: 16px auto;
+  }
+  .dance-swipe-hint {
+    display: block;
+    color: var(--muted);
+    font-size: 12px;
+    margin: 12px 0 0;
+  }
+}
+
+.dance-example-play {
+  min-height: 44px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.dance-example-play small {
+  font-size: 12px;
+  font-weight: 400;
+}
+.dance-example-play:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}

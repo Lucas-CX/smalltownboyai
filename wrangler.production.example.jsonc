@@ -1,0 +1,56 @@
+// Configure new resources for your own project before deployment.
+{
+  "name": "video-studio",
+  "compatibility_date": "2026-06-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "images": {
+    "binding": "IMAGES",
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "vars": {
+    "DATABASE_PROVIDER": "d1",
+    "VITE_APP_URL": "https://example.com",
+    "VITE_APP_NAME": "Video Studio",
+    "VITE_APP_BRAND": "Video Studio",
+    "VITE_SITE_INDEXABLE": "false",
+    "DANCE_CLOUD_ENABLED": "true",
+    "DANCE_PAYMENT_MODE": "mock",
+    "DANCE_GENERATION_MODE": "mock",
+    "VITE_SEO_URL": "https://example.com",
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "video-studio-db",
+      "database_id": "REPLACE_WITH_YOUR_DATABASE_ID",
+      "migrations_dir": "migrations/cloudflare",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "DANCE_FILES",
+      "bucket_name": "video-studio-private",
+    },
+  ],
+  "routes": [
+    {
+      "pattern": "example.com",
+      "custom_domain": true,
+    },
+    {
+      "pattern": "www.example.com",
+      "custom_domain": true,
+    },
+  ],
+  "workers_dev": true,
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": [
+        "notifications@notify.example.com",
+      ],
+    },
+  ],
+}

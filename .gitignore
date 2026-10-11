@@ -1,0 +1,105 @@
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# tanstack start / vite / nitro
+/.next/
+/.output/
+/.nitro/
+/.tanstack/
+/dist/
+src/routeTree.gen.ts
+src/paraglide/
+
+# cloudflare — wrangler.jsonc is your working copy (real D1 id, URLs);
+# the committed template is wrangler.example.jsonc
+/.wrangler/
+wrangler.jsonc
+
+# claude code local state
+.claude/scheduled_tasks.lock
+
+# production
+/build
+
+# deploy
+.vercel
+
+# editors (keep .cursor/skills — cross-agent symlink to .claude/skills)
+.idea
+.vscode
+.cursor/*
+!.cursor/skills
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env — local files hold secrets, never commit (keep .env.example tracked)
+.env
+.dev.vars*
+.env.*
+!.env.example
+!.env.production.example
+
+# typescript
+*.tsbuildinfo
+
+# database
+/data/
+/drizzle/
+src/config/db/schema.ts
+
+# npm (project uses pnpm)
+package-lock.json
+
+# Runtime image uploads (no-storage local fallback)
+/public/uploads/
+
+# Generated delivery bundles, previews and verification logs
+/output/
+/.playwright-cli/
+
+# Private browser evidence and one-off audit working files stay local.
+# Keep reviewed Markdown reports, public indexing CSVs and summary JSON in Git.
+/docs/analytics/*.txt
+/docs/analytics/*.png
+/docs/analytics/*.json
+!/docs/analytics/*-metrics.json
+/docs/analytics/*.ipynb
+/docs/analytics/build-*.py
+/docs/directories/**/*.txt
+/docs/directories/**/*.png
+/docs/directories/**/*.jpg
+/docs/directories/**/*.html
+/docs/directories/**/*.py
+/docs/directories/**/*.json
+/docs/directories/**/catalog-checkout/
+/docs/indexing/**/*.txt
+/docs/indexing/**/*.png
+/docs/indexing/**/url-inspections.json
+/docs/indexing/**/live-sitemap-audit.json
+/docs/research/*snapshot.txt
+/docs/research/screenshots/
+/docs/seo/**/*.png
+/docs/seo/**/*.txt
+/docs/seo/**/*.html
+/docs/seo/**/*.py
+/docs/seo/**/pages.json
+/docs/seo/**/support.json
+/docs/seo/**/technical.json
+/docs/seo/**/samples.json
+/docs/seo/**/results.json
+/docs/seo/**/probes.json
