@@ -296,6 +296,9 @@ export function DancePricing({
         <h2>{m['dance.packtitle']()}</h2>
       )}
       {!forGeneration && <p className="dance-muted">{m['dance.packbody']()}</p>}
+      {previewOnly && (
+        <p className="dance-muted">{m['dance.pricepreview']()}</p>
+      )}
       {selectionError && (
         <p role="alert">{m['dance.purchase.restore_error']()}</p>
       )}

@@ -24,6 +24,13 @@ for (const args of [['build'], ['exec', 'wrangler', 'deploy']]) {
   });
   if (result.status !== 0) process.exit(result.status || 1);
 }
+if (
+  process.env.VITE_SITE_INDEXABLE !== 'true' ||
+  process.env.VITE_PREVIEW_ONLY === 'true'
+) {
+  console.log('IndexNow skipped: this deployment is not open for indexing.');
+  process.exit(0);
+}
 const discovery = spawnSync(process.execPath, ['scripts/submit-indexnow.mjs'], {
   stdio: 'inherit',
   env: process.env,

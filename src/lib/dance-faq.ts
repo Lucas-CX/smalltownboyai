@@ -1,7 +1,11 @@
+import { envConfigs } from '@/config';
 import { m } from '@/paraglide/messages.js';
 
 // One source for the visible homepage FAQ, JSON-LD and llms-full.txt.
 export const danceFaq = [
+  ...(envConfigs.preview_only === 'true'
+    ? [[m['dance.preview.question'], m['dance.preview.answer']] as const]
+    : []),
   [m['dance.q8'], m['dance.a8']],
   [m['dance.q1'], m['dance.a1']],
   [m['dance.q9'], m['dance.a9']],
@@ -12,6 +16,7 @@ export const danceFaq = [
   [m['dance.q12'], m['dance.a12']],
   [m['dance.q13'], m['dance.a13']],
   [m['dance.q7'], m['dance.a7']],
+  [m['dance.q17'], m['dance.a17']],
   [m['dance.q14'], m['dance.a14']],
   [m['dance.q15'], m['dance.a15']],
   [m['dance.q16'], m['dance.a16']],

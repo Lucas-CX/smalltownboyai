@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 
 const base = process.env.SEO_TEST_URL || 'http://localhost:3000';
 const indexable = process.env.SEO_TEST_INDEXABLE === 'true';
+const previewOnly = process.env.SEO_TEST_PREVIEW === 'true';
 const oldContent =
   /gas.?station.?dance|加油站|gas-station-dance|support@gasstationdance/i;
 const paths = [
@@ -36,6 +37,21 @@ for (const locale of ['en', 'zh']) {
     assert.doesNotMatch(html, oldContent, url);
     assert.match(html, /rel="canonical"/, url);
     assert.equal(/name="robots" content="noindex/.test(html), !indexable, url);
+    if (previewOnly) {
+      assert.doesNotMatch(
+        html,
+        /"@type":"Offer(?:Catalog)?"/,
+        'Preview must not advertise purchasable structured offers'
+      );
+      if (path === '/') {
+        assert.match(
+          html,
+          locale === 'en'
+            ? /Can I purchase or generate a video on this site yet/
+            : /现在可以在网站购买或生成视频吗/
+        );
+      }
+    }
     assert.doesNotMatch(
       html,
       /"@type":"VideoObject"/,

@@ -80,7 +80,9 @@ export function danceSeo() {
           operatingSystem: 'Web browser',
           publisher: { '@id': danceOrganizationId() },
           isPartOf: { '@id': danceWebsiteId() },
-          offers: dancePricingOffers(),
+          ...(envConfigs.preview_only === 'true'
+            ? {}
+            : { offers: dancePricingOffers() }),
           // No fabricated reviews, ratings, free offers or unverified generation times.
         }).replace(/</g, '\\u003c'),
       },
@@ -127,6 +129,7 @@ export function dancePricingSeo() {
     cost1080: danceCreditCost('1080P'),
   });
   const seo = dancePageSeo('/pricing', title, description);
+  if (envConfigs.preview_only === 'true') return seo;
   return {
     ...seo,
     scripts: [

@@ -958,8 +958,8 @@
   "dance.logintitle": "Continue to your video",
   "dance.loginbody": "Sign in to save your video and pick up where you left off.",
   "dance.drafterror": "We could not save your photos on this device. Allow browser storage and try again.",
-  "dance.packtitle": "One video or a few more?",
-  "dance.packbody": "Choose a one-time credit pack. Mix resolutions freely. No subscription.",
+  "dance.packtitle": "Smalltown Boy video credit packs",
+  "dance.packbody": "One-time payment, no recurring subscription. Compare the credits for your resolution with the pack balance. The amount at checkout is the full pack price.",
   "dance.pack.single": "Starter",
   "dance.pack.friends": "Creator",
   "dance.pack.collection": "Studio",
@@ -1195,8 +1195,8 @@
   "dance.progress.refresh": "Refresh status",
   "dance.purchase.restore_error": "We could not restore your selection. Choose your pack again; no payment was made by restoring.",
   "dance.purchase.restored": "Your selected pack is restored for {resolution}. Confirm below to continue to checkout.",
-  "dance.cast.choose": "Who is your duo?",
-  "dance.cast.one": "Two photos required. One subject in each — a person or a pet.",
+  "dance.cast.choose": "Choose your Smalltown Boy dance duo",
+  "dance.cast.one": "Two separate photos, one clear person or pet in each. A takes the opening close-up; B dances behind. Swap the photos to swap their roles.",
   "dance.cast.replace": "Replace photo",
   "dance.cast.defaults": "Your photos set the identities. The red-fence reference sets the moves, timing and comic ending.",
   "dance.cast.price": "From ${price} USD · One 480p video · One-time payment",
@@ -1297,5 +1297,9 @@
   "dance.q15": "Can I play both roles with the same photo?",
   "dance.a15": "Both photo slots must be filled. The same subject in both roles has not been separately verified, so do not assume it will produce two consistent copies. Two distinct, clear subject photos make the intended role assignment easier to review.",
   "dance.q16": "How long does generation take? Can I close the page?",
-  "dance.a16": "Generation time varies with the provider and queue. Track the existing task in My videos instead of starting another one. You can return to the same account to check progress. The 24-hour file-access window starts when the order is created, so download promptly once the result is ready."
+  "dance.a16": "Generation time varies with the provider and queue. Track the existing task in My videos instead of starting another one. You can return to the same account to check progress. The 24-hour file-access window starts when the order is created, so download promptly once the result is ready.",
+  "dance.preview.question": "Can I purchase or generate a video on this site yet?",
+  "dance.preview.answer": "Not yet. This is a display preview: you can watch the sample and explore the photo roles, but accounts, purchases and generation are not open. The pricing and workflow below describe the planned service, not an available purchase.",
+  "dance.q17": "Can I download an MP4 without a watermark?",
+  "dance.a17": "Completed videos are available as MP4 downloads in My videos. We deliver the provider’s generated file; watermark-free output is not a verified guarantee. Review the downloaded file before posting, and save it before the order’s file-access deadline."
 }
