@@ -52,7 +52,7 @@ test('Native Worker requests and bodyless Node reads are unchanged', () => {
 });
 
 const paths = ['/', '/pricing', '/about'];
-const locales = ['en', 'zh', 'it', 'ru', 'pt-BR'];
+const locales = ['en', 'zh'];
 const normalize = (request: Request) =>
   danceHtmlPageRequest(request, paths, locales);
 
@@ -73,7 +73,7 @@ test('Request-compatible server wrappers do not require native Request internal 
 
 test('Markdown-preferring public readers receive an HTML request without losing context', () => {
   for (const method of ['GET', 'HEAD']) {
-    for (const path of ['/', '/zh', '/zh/pricing', '/pt-BR/about']) {
+    for (const path of ['/', '/zh', '/zh/pricing', '/zh/about']) {
       const request = new Request(
         'https://example.com' + path + '?utm_source=test',
         {

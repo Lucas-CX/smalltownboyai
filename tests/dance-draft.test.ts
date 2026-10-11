@@ -32,7 +32,7 @@ test('unavailable IndexedDB falls back to tab storage with ownership, expiry and
       },
     });
     const draft = {
-      photos: ['photo1', 'photo2', 'photo3'],
+      photos: ['photo1', 'photo2'],
       consent: true,
       requestKey: 'same-request',
       ownerId: 'owner',
@@ -44,7 +44,7 @@ test('unavailable IndexedDB falls back to tab storage with ownership, expiry and
       'expired session cannot view owned photos'
     );
     assert.deepEqual((await loadDanceDraft('owner'))?.photos, draft.photos);
-    for (let mask = 1; mask < 8; mask++) {
+    for (let mask = 1; mask < 4; mask++) {
       const partial = {
         ...draft,
         photos: draft.photos.map((p, i) => (mask & (1 << i) ? p : null)),
@@ -52,16 +52,16 @@ test('unavailable IndexedDB falls back to tab storage with ownership, expiry and
       await saveDanceDraft(partial);
       const restored = await loadDanceDraft('owner');
       assert.deepEqual(restored?.photos, partial.photos);
-      assert.equal(restored?.castVersion, 'v1');
+      assert.equal(restored?.castVersion, 'smalltown-duo-v1');
       assert.equal(restored?.requestKey, draft.requestKey);
     }
     assert.equal((await loadDanceDraft('owner'))?.requestKey, 'same-request');
     assert.equal(await loadDanceDraft('different-account'), undefined);
     assert.equal(await loadDanceDraft('owner'), undefined);
     await saveDanceDraft(draft);
-    const stored = JSON.parse(values.get('dance-draft-backup')!);
+    const stored = JSON.parse(values.get('smalltown-draft-backup')!);
     values.set(
-      'dance-draft-backup',
+      'smalltown-draft-backup',
       JSON.stringify({ ...stored, expiresAt: Date.now() - 1 })
     );
     assert.equal(await loadDanceDraft('owner'), undefined);
@@ -108,7 +108,7 @@ test('blocked IndexedDB times out and closes a late connection instead of hangin
       },
     });
     await saveDanceDraft({
-      photos: ['a', 'b', 'c'],
+      photos: ['a', 'b'],
       consent: true,
       requestKey: 'retry',
     });

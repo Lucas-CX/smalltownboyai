@@ -80,7 +80,7 @@ export async function create(
   requestKey: string,
   photos: (Uint8Array | null)[],
   scenario: string,
-  resolution: DanceResolution = '480P'
+  resolution: DanceResolution = '720P'
 ) {
   requireSandbox();
   if (!isDanceResolution(resolution)) throw new Error('Invalid resolution');

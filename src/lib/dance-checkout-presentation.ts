@@ -6,14 +6,12 @@ import { envConfigs } from '@/config';
 // Webhook validation and existing fulfillment keep their current SDK contract.
 export const danceCheckoutApiVersion = '2026-08-26.dahlia';
 export function danceCheckoutPresentation(origin: string, locale = 'en') {
-  const supported = ['en', 'zh', 'it', 'ru', 'pt-BR', 'de', 'pl'];
+  const supported = ['en', 'zh'];
   const selected = supported.includes(locale) ? locale : 'en';
   const name = envConfigs.app_name;
   return {
     branding_settings: { display_name: name },
-    locale: (selected === 'pt-BR'
-      ? 'pt-BR'
-      : selected) as Stripe.Checkout.SessionCreateParams.Locale,
+    locale: selected as Stripe.Checkout.SessionCreateParams.Locale,
     payment_intent_data: {
       description: `${name} video credits`,
       statement_descriptor_suffix: name

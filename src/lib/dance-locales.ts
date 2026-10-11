@@ -1,5 +1,4 @@
 import { localizeUrl } from '@/core/i18n/urls';
-import { danceMarketPageAvailable } from '@/lib/dance-market-scope';
 import { locales } from '@/paraglide/runtime.js';
 
 export const danceMarketLocales = locales;
@@ -14,9 +13,7 @@ export function danceLocaleHasIndexablePage(path: string, locale: string) {
       '/privacy-policy',
       '/terms-of-service',
       '/refund-policy',
-    ].includes(path) &&
-    danceMarketLocales.some((market) => market === locale) &&
-    danceMarketPageAvailable(path, locale)
+    ].includes(path) && danceMarketLocales.some((market) => market === locale)
   );
 }
 

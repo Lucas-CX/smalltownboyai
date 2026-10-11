@@ -9,10 +9,7 @@ import {
   normalizeDanceNodeRequest,
 } from './lib/dance-http';
 import { danceMarketLocales } from './lib/dance-locales';
-import {
-  danceLimitedLocales,
-  danceMarketPageAvailable,
-} from './lib/dance-market-scope';
+import { previewResponse } from './lib/preview-response';
 import { paraglideMiddleware } from './paraglide/server.js';
 
 // On Cloudflare Workers, stash the binding env (D1, ASSETS, …) on globalThis
@@ -49,19 +46,8 @@ export default {
       envConfigs.seo_url
     );
     if (canonicalTarget) return Response.redirect(canonicalTarget, 308);
-    const prefix = incoming.pathname.split('/')[1];
-    const contentPath = incoming.pathname.slice(prefix.length + 1) || '/';
-    if (
-      ['GET', 'HEAD'].includes(req.method) &&
-      req.headers.get('x-tsr-serverFn') !== 'true' &&
-      danceLimitedLocales.some((locale) => locale === prefix) &&
-      dancePublicPaths.includes(contentPath) &&
-      !danceMarketPageAvailable(contentPath, prefix)
-    ) {
-      const english = new URL(incoming);
-      english.pathname = contentPath;
-      return Response.redirect(english, 302);
-    }
+    const preview = previewResponse(req, envConfigs.preview_only === 'true');
+    if (preview) return preview;
     const pageRequest = danceHtmlPageRequest(
       req,
       dancePublicPaths,

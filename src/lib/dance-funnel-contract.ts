@@ -3,8 +3,6 @@ import { z } from 'zod';
 import type { ConversionDay } from './dance-reporting';
 
 export const clientFunnelEvents = [
-  'dance_market_landing_viewed',
-  'dance_market_entry_clicked',
   'dance_quote_viewed',
   'dance_resolution_changed',
   'dance_photo_picker_opened',
@@ -116,10 +114,7 @@ export const funnelParamsSchema = z
       .max(35)
       .regex(/^(?:unknown|[a-zA-Z]{2,8}(?:-[a-zA-Z0-9]{1,8})*)$/)
       .optional(),
-    page_locale: z
-      .enum(['en', 'zh', 'it', 'ru', 'pt-BR', 'de', 'pl', 'tr', 'ro', 'ko'])
-      .optional(),
-    entry_market: z.enum(['tr', 'ro']).optional(),
+    page_locale: z.enum(['en', 'zh']).optional(),
     geo_country: z
       .string()
       .regex(/^(?:[A-Z]{2}|unknown)$/)
@@ -216,20 +211,7 @@ export const funnelBatchSchema = z
           .object({
             id: z.string().uuid(),
             event: z.enum(clientFunnelEvents),
-            locale: z
-              .enum([
-                'en',
-                'zh',
-                'ko',
-                'it',
-                'ru',
-                'pt-BR',
-                'de',
-                'pl',
-                'tr',
-                'ro',
-              ])
-              .default('en'),
+            locale: z.enum(['en', 'zh']).default('en'),
             params: funnelParamsSchema.default({}),
           })
           .strict()

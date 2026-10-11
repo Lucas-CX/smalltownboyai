@@ -12,7 +12,7 @@ test('Clarity excludes private paths, locales and checkout/auth tokens', () => {
   for (const path of [
     '/admin',
     '/zh/admin/settings',
-    '/pt-BR/settings',
+    '/zh/settings',
     '/sign-in',
     '/ru/auth-callback',
     '/api/dance/file',

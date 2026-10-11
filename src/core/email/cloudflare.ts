@@ -71,6 +71,16 @@ export class CloudflareEmailProvider implements EmailProvider {
       if (!this.configs.apiToken || !this.configs.accountId)
         throw new Error('Cloudflare Email is not configured');
 
+      // The REST API uses recipient arrays and snake_case, unlike the binding.
+      const restBody = { ...body };
+      for (const field of ['to', 'cc', 'bcc']) {
+        if (typeof restBody[field] === 'string') {
+          restBody[field] = [restBody[field]];
+        }
+      }
+      if (email.replyTo) restBody.reply_to = email.replyTo;
+      delete restBody.replyTo;
+
       const url = `https://api.cloudflare.com/client/v4/accounts/${this.configs.accountId}/email/sending/send`;
 
       const resp = await fetch(url, {
@@ -79,7 +89,7 @@ export class CloudflareEmailProvider implements EmailProvider {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${this.configs.apiToken}`,
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(restBody),
         signal: AbortSignal.timeout(30_000),
       });
 
@@ -111,7 +121,7 @@ export class CloudflareEmailProvider implements EmailProvider {
         };
       return {
         success: true,
-        messageId: data?.result?.messageId || undefined,
+        messageId: data?.result?.message_id || undefined,
         provider: this.name,
       };
     } catch (error) {

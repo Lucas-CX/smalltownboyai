@@ -203,7 +203,7 @@
 }
 .dance-upload-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 .dance-upload {
@@ -1938,4 +1938,80 @@
 }
 .dance-resolution label {
   min-width: 0;
+}
+
+.dance-role-description {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+.dance-swap-roles {
+  margin-top: 12px;
+  padding: 8px 14px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.dance-swap-roles:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.dance-swap-roles:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.dance-trend {
+  border-top: 1px solid var(--line);
+  padding: 54px 0;
+}
+.dance-trend > p {
+  max-width: 76ch;
+}
+.dance-trend p {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.8;
+}
+.dance-trend-notes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 32px;
+  margin: 28px 0;
+}
+.dance-trend h3 {
+  font-size: 17px;
+  line-height: 1.5;
+  margin: 0 0 12px;
+}
+.dance-trend > a {
+  display: inline-block;
+  color: var(--accent);
+  padding: 12px 0;
+}
+.dance-closing {
+  text-align: center;
+}
+.dance-closing > p {
+  margin-inline: auto;
+}
+@media (max-width: 700px) {
+  .dance-trend {
+    padding: 38px 0;
+  }
+  .dance-trend-notes {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+}
+
+.dance-preview-banner {
+  margin: 16px auto;
+  padding: 12px 20px;
+  max-width: 1200px;
+  border: 1px solid currentColor;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.6;
 }

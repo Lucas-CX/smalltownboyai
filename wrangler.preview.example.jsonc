@@ -1,0 +1,33 @@
+// Display-only release: deliberately no database, storage, mail or scheduled task bindings.
+{
+  "name": "smalltownboyai",
+  "compatibility_date": "2026-06-10",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+  },
+  "vars": {
+    "DATABASE_PROVIDER": "d1",
+    "VITE_APP_URL": "https://smalltownboyai.video",
+    "VITE_SEO_URL": "https://smalltownboyai.video",
+    "VITE_APP_NAME": "Smalltown Boy AI",
+    "VITE_APP_BRAND": "Smalltown Boy AI",
+    "VITE_SITE_INDEXABLE": "false",
+    "VITE_PREVIEW_ONLY": "true",
+    "DANCE_CLOUD_ENABLED": "false",
+    "DANCE_PAYMENT_MODE": "mock",
+    "DANCE_GENERATION_MODE": "mock",
+    "EMAIL_AUTH_ENABLED": "false",
+  },
+  "routes": [
+    {
+      "pattern": "smalltownboyai.video",
+      "custom_domain": true,
+    },
+    {
+      "pattern": "www.smalltownboyai.video",
+      "custom_domain": true,
+    },
+  ],
+  "workers_dev": true,
+}

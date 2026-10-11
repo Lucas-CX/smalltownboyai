@@ -7,7 +7,7 @@ export function isDanceResolution(value: unknown): value is DanceResolution {
 // A convenience preference is never a requirement for selecting photos or paying.
 export function loadDanceResolution(): DanceResolution | undefined {
   try {
-    const value = localStorage.getItem('dance-resolution');
+    const value = localStorage.getItem('smalltown-resolution');
     return isDanceResolution(value) ? value : undefined;
   } catch {
     return undefined;
@@ -15,7 +15,7 @@ export function loadDanceResolution(): DanceResolution | undefined {
 }
 export function saveDanceResolution(value: DanceResolution) {
   try {
-    localStorage.setItem('dance-resolution', value);
+    localStorage.setItem('smalltown-resolution', value);
   } catch {
     /* keep the in-memory choice */
   }

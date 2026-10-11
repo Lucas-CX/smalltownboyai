@@ -110,13 +110,6 @@ export default defineConfig({
           localized: [
             ['en', '/api/:path(.*)?'],
             ['zh', '/api/:path(.*)?'],
-            ['it', '/api/:path(.*)?'],
-            ['ru', '/api/:path(.*)?'],
-            ['pt-BR', '/api/:path(.*)?'],
-            ['de', '/api/:path(.*)?'],
-            ['pl', '/api/:path(.*)?'],
-            ['tr', '/api/:path(.*)?'],
-            ['ro', '/api/:path(.*)?'],
           ],
         },
         // Bare locale homes match without a trailing-slash redirect.
@@ -124,13 +117,6 @@ export default defineConfig({
           pattern: '/',
           localized: [
             ['zh', '/zh'],
-            ['it', '/it'],
-            ['ru', '/ru'],
-            ['pt-BR', '/pt-BR'],
-            ['de', '/de'],
-            ['pl', '/pl'],
-            ['tr', '/tr'],
-            ['ro', '/ro'],
             ['en', '/'],
           ],
         },
@@ -139,13 +125,6 @@ export default defineConfig({
           pattern: '/:path(.*)?',
           localized: [
             ['zh', '/zh/:path(.*)?'],
-            ['it', '/it/:path(.*)?'],
-            ['ru', '/ru/:path(.*)?'],
-            ['pt-BR', '/pt-BR/:path(.*)?'],
-            ['de', '/de/:path(.*)?'],
-            ['pl', '/pl/:path(.*)?'],
-            ['tr', '/tr/:path(.*)?'],
-            ['ro', '/ro/:path(.*)?'],
             ['en', '/:path(.*)?'],
           ],
         },
@@ -156,7 +135,7 @@ export default defineConfig({
     }),
     viteReact(),
     nitro(
-      isCloudflareBuild
+      isCloudflareBuild && process.env.VITE_PREVIEW_ONLY !== 'true'
         ? {
             experimental: { tasks: true },
             tasks: {

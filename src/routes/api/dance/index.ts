@@ -15,9 +15,9 @@ import { enforceMinIntervalRateLimit } from '@/lib/rate-limit';
 import { respData, respErr } from '@/lib/resp';
 
 const input = z.object({
-  castVersion: z.literal('v1').default('v1'),
+  castVersion: z.literal('smalltown-duo-v1').default('smalltown-duo-v1'),
   flowId: z.string().uuid().optional(),
-  resolution: z.enum(danceResolutions).default('480P'),
+  resolution: z.enum(danceResolutions).default('720P'),
   requestKey: z.string().uuid(),
   consent: z.literal(true),
   photos: dancePhotosSchema,
@@ -52,7 +52,7 @@ async function handler({ request }: { request: Request }) {
       const item = await reader.read();
       if (item.done) break;
       size += item.value.length;
-      if (size > 34_000_000) {
+      if (size > 23_000_000) {
         await reader.cancel();
         return respErr('Photos too large', { status: 413 });
       }

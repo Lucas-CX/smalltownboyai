@@ -38,6 +38,13 @@ export async function submitRealDance(
   job: { id: string; userId: string; resolution: string; photos: string },
   key: string
 ) {
+  const photos: unknown = JSON.parse(job.photos);
+  if (
+    !Array.isArray(photos) ||
+    photos.length !== 2 ||
+    !photos.every((photo) => typeof photo === 'string' && photo.length > 0)
+  )
+    throw new Error('Exactly two role photos required');
   const permit = await realDancePermit(job.userId, job.resolution);
   if (!permit || !key) throw new Error('Real generation unavailable');
   if (permit.live) await assertLiveDancePayment(job.id, job.userId);
@@ -79,7 +86,7 @@ export async function submitRealDance(
       .run();
   };
   const images: string[] = [];
-  for (const photo of JSON.parse(job.photos) as string[]) {
+  for (const photo of photos as string[]) {
     await stage(`reading-photo-${images.length + 1}`);
     const form = new FormData();
     form.append(

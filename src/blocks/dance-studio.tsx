@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 import { useSession } from '@/core/auth/client';
-import { useRouter } from '@/core/i18n/navigation';
+import { Link, useRouter } from '@/core/i18n/navigation';
 import { envConfigs } from '@/config';
 import { apiGet, apiPost } from '@/lib/api-client';
 import { browserUuid } from '@/lib/browser-uuid';
@@ -22,7 +22,7 @@ import {
   trackDance,
   trackDanceOnce,
 } from '@/lib/dance-analytics';
-import { defaultDanceCast } from '@/lib/dance-cast';
+import { castPreview } from '@/lib/dance-cast';
 import {
   clearDanceDraft,
   loadDanceDraft,
@@ -53,8 +53,8 @@ import {
 import { readDanceVideoState } from '@/lib/dance-video-state';
 import { m } from '@/paraglide/messages.js';
 import { getLocale, localizeHref } from '@/paraglide/runtime.js';
-import { DanceContentLink as Link } from '@/blocks/dance-content-link';
 import { DancePricing } from '@/blocks/dance-pricing';
+import { DanceClosingCta, DanceTrend } from '@/blocks/dance-trend';
 import { DanceVideo } from '@/components/dance-video';
 import { LocaleSelector } from '@/components/locale-selector';
 import { Button } from '@/components/ui/button';
@@ -202,8 +202,9 @@ const labels: Record<string, () => string> = {
   'status.deleted': m['dance.status.deleted'],
 };
 const t = (key: string) => labels[key]?.() ?? key;
-const roles = ['left', 'right', 'car'];
+const roles = ['left', 'right'];
 export function DanceStudio() {
+  const previewOnly = envConfigs.preview_only === 'true';
   const router = useRouter();
   const authSession = useSession();
   const [hydrated, setHydrated] = useState(false);
@@ -219,18 +220,16 @@ export function DanceStudio() {
     queryKey: ['dance-settings'],
     queryFn: () => apiGet<{ simulation: boolean }>('/api/dance/settings'),
   });
-  const [photos, setPhotos] = useState<(string | null)[]>([null, null, null]);
-  const previews = photos.map(
-    (photo, index) => photo || defaultDanceCast[index]
-  );
-  const [resolution, setResolution] = useState<DanceResolution>('480P');
+  const [photos, setPhotos] = useState<(string | null)[]>([null, null]);
+  const previews = castPreview(photos);
+  const [resolution, setResolution] = useState<DanceResolution>('720P');
   useEffect(() => {
     const saved = loadDanceResolution();
     if (saved) setResolution(saved);
   }, []);
   const [consent, setConsent] = useState(false);
-  const [photoErrors, setPhotoErrors] = useState(['', '', '']);
-  const [photoWarnings, setPhotoWarnings] = useState(['', '', '']);
+  const [photoErrors, setPhotoErrors] = useState(['', '']);
+  const [photoWarnings, setPhotoWarnings] = useState(['', '']);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [orderError, setOrderError] = useState<{
     id: string;
@@ -282,7 +281,7 @@ export function DanceStudio() {
       // Hide photos on session loss, but retain the owner-bound draft for
       // re-authentication. A different signed-in account must discard it.
       if (owner) void clearDanceDraft();
-      setPhotos([null, null, null]);
+      setPhotos([null, null]);
       setConsent(false);
       setRequestKey(null);
     }
@@ -309,10 +308,10 @@ export function DanceStudio() {
           return;
         }
         trackDance('dance_draft_restored', {
-          resolution: draft.resolution || '480P',
+          resolution: draft.resolution || '720P',
         });
         setPhotos(draft.photos);
-        setResolution(draft.resolution || '480P');
+        setResolution(draft.resolution || '720P');
         setConsent(draft.consent);
         setRequestKey(draft.requestKey);
         if (
@@ -451,7 +450,7 @@ export function DanceStudio() {
       resultObserver.current(job, true);
       void clearDanceDraft().catch(() => {});
       setRequestKey(null);
-      setPhotos([null, null, null]);
+      setPhotos([null, null]);
       setConsent(false);
       setShowOrders(true);
       window.history.replaceState(null, '', localizeHref('/#orders'));
@@ -493,7 +492,13 @@ export function DanceStudio() {
     requestKey: string;
     resolution?: DanceResolution;
   }) {
-    if (readLock.current || submitLock.current || create.isPending || preparing)
+    if (
+      previewOnly ||
+      readLock.current ||
+      submitLock.current ||
+      create.isPending ||
+      preparing
+    )
       return;
     const draft = restoredDraft || {
       photos,
@@ -503,8 +508,8 @@ export function DanceStudio() {
     };
     if (
       !draft.consent ||
-      draft.photos.length !== 3 ||
-      !draft.photos.some(Boolean)
+      draft.photos.length !== 2 ||
+      !draft.photos.every(Boolean)
     )
       return;
     trackDance('dance_generate_clicked', {
@@ -651,39 +656,41 @@ export function DanceStudio() {
         </nav>
         <div className="dance-account-group">
           <LocaleSelector variant="pill" className="dance-language-selector" />
-          <Link
-            onClick={(event) => {
-              if (!session.data?.user) return;
-              event.preventDefault();
-              setShowOrders(true);
-              window.history.replaceState(null, '', '#orders');
-              requestAnimationFrame(() =>
-                document
-                  .getElementById('orders')
-                  ?.scrollIntoView({ block: 'start' })
-              );
-            }}
-            className="dance-account"
-            href={
-              session.data ? '/#orders' : '/sign-in?callbackUrl=%2F%23studio'
-            }
-          >
-            <span className="dance-account-label">
-              {session.isPending
-                ? t('loading')
-                : session.data
-                  ? t('account')
-                  : t('signin')}
-            </span>
-            <span className="dance-account-label-short">
-              {session.isPending
-                ? t('loading')
-                : session.data
-                  ? t('account')
-                  : m['common.sign.sign_in_title']()}
-            </span>
-            <ArrowUpRight size={16} />
-          </Link>
+          {!previewOnly && (
+            <Link
+              onClick={(event) => {
+                if (!session.data?.user) return;
+                event.preventDefault();
+                setShowOrders(true);
+                window.history.replaceState(null, '', '#orders');
+                requestAnimationFrame(() =>
+                  document
+                    .getElementById('orders')
+                    ?.scrollIntoView({ block: 'start' })
+                );
+              }}
+              className="dance-account"
+              href={
+                session.data ? '/#orders' : '/sign-in?callbackUrl=%2F%23studio'
+              }
+            >
+              <span className="dance-account-label">
+                {session.isPending
+                  ? t('loading')
+                  : session.data
+                    ? t('account')
+                    : t('signin')}
+              </span>
+              <span className="dance-account-label-short">
+                {session.isPending
+                  ? t('loading')
+                  : session.data
+                    ? t('account')
+                    : m['common.sign.sign_in_title']()}
+              </span>
+              <ArrowUpRight size={16} />
+            </Link>
+          )}
           {session.data?.user && (
             <Suspense fallback={<span className="inline-block size-9" />}>
               <SiteUserMenu
@@ -696,20 +703,25 @@ export function DanceStudio() {
         </div>
       </header>
       <main>
+        {previewOnly && (
+          <p className="dance-preview-banner" role="status">
+            {m['dance.preview_only']()}
+          </p>
+        )}
         <div className="dance-generator dance-cast-first">
           <section className="dance-hero">
             <div className="dance-intro">
               <p className="dance-eyebrow">{t('eyebrow')}</p>
-              <h1>
-                <em>{envConfigs.app_name}</em>
-                <br />
-                {m['dance.generator']()}
-              </h1>
+              <h1>{m['dance.headline']()}</h1>
               <p className="dance-lead">{t('lead')}</p>
             </div>
           </section>
           <section className="dance-workbench">
-            <div className="dance-story" aria-label={t('storyboard')}>
+            <div
+              id="examples"
+              className="dance-story"
+              aria-label={t('storyboard')}
+            >
               <div className="dance-example-stage">
                 <div className="dance-video-frame">
                   <span className="dance-video-label">
@@ -759,6 +771,11 @@ export function DanceStudio() {
               <div className="dance-upload-grid">
                 {roles.map((role, index) => (
                   <div className="dance-upload-slot" key={role}>
+                    <p className="dance-role-description">
+                      {index === 0
+                        ? m['dance.cast.role_a']()
+                        : m['dance.cast.role_b']()}
+                    </p>
                     <label
                       className={`dance-upload ${previews[index] ? 'has-photo' : 'dance-upload-start'} ${!photos[index] && previews[index] ? 'dance-default-photo' : ''}`}
                       onDragOver={(event) => event.preventDefault()}
@@ -886,11 +903,27 @@ export function DanceStudio() {
                   </div>
                 ))}
               </div>
+              <button
+                type="button"
+                className="dance-swap-roles"
+                disabled={
+                  !photos.some(Boolean) ||
+                  reading ||
+                  preparing ||
+                  create.isPending
+                }
+                onClick={() => {
+                  setPhotos(([a, b]) => [b, a]);
+                  setPhotoErrors(([a, b]) => [b, a]);
+                  setPhotoWarnings(([a, b]) => [b, a]);
+                  setRequestKey(null);
+                }}
+              >
+                {m['dance.cast.swap']()}
+              </button>
               <p className="dance-cast-note">{m['dance.cast.defaults']()}</p>
               <p className="dance-cast-price">
-                {m['dance.cast.price']({
-                  price: (dancePlans[0].cents / 100).toFixed(2),
-                })}
+                {m['dance.output.spec']()} · {quoteText(resolution)}
               </p>
               <p className="dance-muted dance-cast-privacy">
                 <LockKeyhole size={14} />
@@ -948,7 +981,7 @@ export function DanceStudio() {
                   <p className="dance-readiness" aria-live="polite">
                     {reading
                       ? t('reading')
-                      : photos.some(Boolean)
+                      : photos.every(Boolean)
                         ? consent
                           ? t('ready')
                           : t('needconsent')
@@ -959,22 +992,25 @@ export function DanceStudio() {
                       <Button
                         className="dance-primary"
                         disabled={
+                          previewOnly ||
                           session.isPending ||
                           !consent ||
-                          !photos.some(Boolean) ||
+                          !photos.every(Boolean) ||
                           create.isPending ||
                           reading ||
                           preparing
                         }
                         onClick={() => void generate()}
                       >
-                        {create.isPending || preparing
-                          ? t('checking')
-                          : quote?.canContinue
-                            ? m['dance.generate']({
-                                credits: danceCreditCost(resolution),
-                              })
-                            : m['dance.quote.review']()}{' '}
+                        {previewOnly
+                          ? m['dance.coming_soon']()
+                          : create.isPending || preparing
+                            ? t('checking')
+                            : quote?.canContinue
+                              ? m['dance.generate']({
+                                  credits: danceCreditCost(resolution),
+                                })
+                              : m['dance.quote.review']()}{' '}
                         <ArrowUpRight size={18} />
                       </Button>
                       <small>{t('nopay')}</small>
@@ -1260,6 +1296,7 @@ export function DanceStudio() {
           </details>
         )}
 
+        <DanceTrend />
         <DancePricing
           resolution={resolution}
           beforeCheckout={saveCurrentDraft}
@@ -1287,6 +1324,7 @@ export function DanceStudio() {
             </details>
           ))}
         </section>
+        <DanceClosingCta />
       </main>
       <Suspense fallback={null}>
         {loginOpen && (

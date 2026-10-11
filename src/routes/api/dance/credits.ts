@@ -57,9 +57,7 @@ async function handle({ request }: { request: Request }) {
     const input = z
       .object({
         flowId: z.string().uuid().optional(),
-        locale: z
-          .enum(['en', 'zh', 'it', 'ru', 'pt-BR', 'de', 'pl'])
-          .optional(),
+        locale: z.enum(['en', 'zh']).optional(),
         packId: z.enum(['single', 'friends', 'collection']),
         requestKey: z.string().uuid(),
         confirmPreview: z.literal(true),

@@ -180,7 +180,7 @@ test('isolated purchase → signed confirmation → credit grant → generation,
       const created = await service.create(
         userId,
         crypto.randomUUID(),
-        [photo, null, null],
+        [photo, photo],
         'success',
         resolution
       );
@@ -216,7 +216,7 @@ test('isolated purchase → signed confirmation → credit grant → generation,
     const failed = await service.create(
       'buyer720',
       crypto.randomUUID(),
-      [photo, null, null],
+      [photo, photo],
       'failure',
       '720P'
     );

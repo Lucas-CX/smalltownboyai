@@ -13,7 +13,20 @@ const paths = [
   '/terms-of-service',
   '/refund-policy',
 ];
-for (const locale of ['en', 'zh', 'it', 'ru', 'pt-BR']) {
+function decodeHtml(text) {
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (_, code) =>
+      String.fromCodePoint(parseInt(code, 16))
+    )
+    .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&');
+}
+const discovery = await (await fetch(base + '/llms-full.txt')).text();
+for (const locale of ['en', 'zh']) {
   const prefix = locale === 'en' ? '' : '/' + locale;
   for (const path of paths) {
     const url = base + prefix + (path === '/' ? '' : path);
@@ -28,6 +41,56 @@ for (const locale of ['en', 'zh', 'it', 'ru', 'pt-BR']) {
       /"@type":"VideoObject"/,
       'No historical sample claims'
     );
+    if (path === '/') {
+      assert.equal([...html.matchAll(/<h1\b/g)].length, 1, 'One homepage H1');
+      assert.match(html, /<title>[^<]*Smalltown Boy/, 'Trend-specific title');
+      assert.match(
+        html,
+        /id="dance-trend-heading"/,
+        'Trend explanation is server rendered'
+      );
+      const faq = html.match(
+        /<section id="faq"[^>]*>([\s\S]*?)<\/section>/
+      )?.[1];
+      assert.ok(faq, 'FAQ is present without JavaScript');
+      const visible = [
+        ...faq.matchAll(/<summary>([\s\S]*?)<\/summary>\s*<p>([\s\S]*?)<\/p>/g),
+      ].map((match) => ({
+        question: decodeHtml(match[1]),
+        answer: decodeHtml(match[2]),
+      }));
+      const schemas = [
+        ...html.matchAll(
+          /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g
+        ),
+      ].map((match) => JSON.parse(match[1]));
+      const faqSchema = schemas.find((schema) => schema['@type'] === 'FAQPage');
+      assert.ok(faqSchema, 'FAQ structured data exists');
+      assert.ok(
+        visible.length >= 12,
+        'FAQ covers the researched user decisions'
+      );
+      assert.deepEqual(
+        faqSchema.mainEntity.map((entry) => ({
+          question: entry.name,
+          answer: entry.acceptedAnswer.text,
+        })),
+        visible,
+        'Visible FAQ and structured data must agree'
+      );
+      if (locale === 'en') {
+        for (const entry of visible) {
+          assert.ok(
+            discovery.includes(entry.question),
+            'Discovery includes each question'
+          );
+          assert.ok(
+            discovery.includes(entry.answer),
+            'Discovery uses the same answer'
+          );
+        }
+      }
+    }
   }
 }
 for (const path of [

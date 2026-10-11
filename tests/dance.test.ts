@@ -33,19 +33,19 @@ const image = await sharp({
   .png()
   .toBuffer();
 
-test('partial casts save three private ordered images, retries stay idempotent and deletion keeps shared defaults', async () => {
+test('duo saves two private ordered images, retries stay idempotent and deletion removes both', async () => {
   await sql.execute("INSERT INTO user(id) VALUES ('cast-test')");
   const { completeDanceCast } =
     await import('../src/core/storage/dance-default-cast');
-  for (let mask = 1; mask < 8; mask++) {
-    const photos = [0, 1, 2].map((i) => (mask & (1 << i) ? image : null));
+  for (let mask = 3; mask < 4; mask++) {
+    const photos = [0, 1].map((i) => (mask & (1 << i) ? image : null));
     const request = crypto.randomUUID();
     const job = await service.create('cast-test', request, photos, 'success');
     const row = await service.owned('cast-test', job.id);
     const keys = JSON.parse(row.photos) as string[];
-    assert.equal(keys.length, 3);
+    assert.equal(keys.length, 2);
     const expected = completeDanceCast(photos);
-    for (let i = 0; i < 3; i++)
+    for (let i = 0; i < 2; i++)
       assert.deepEqual(
         await readPrivate(keys[i]),
         await normalizePhoto(expected[i])
@@ -56,16 +56,11 @@ test('partial casts save three private ordered images, retries stay idempotent a
     );
     await service.erase('cast-test', job.id);
     for (const key of keys) await assert.rejects(readPrivate(key));
-    assert.equal(completeDanceCast(photos).length, 3);
+    assert.equal(completeDanceCast(photos).length, 2);
   }
   await assert.rejects(
-    service.create(
-      'cast-test',
-      crypto.randomUUID(),
-      [null, null, null],
-      'success'
-    ),
-    /at least one/
+    service.create('cast-test', crypto.randomUUID(), [null, null], 'success'),
+    /two/
   );
 });
 
@@ -77,7 +72,7 @@ test('real worker transport faults reconcile existing IDs; failure and private r
       const created = await service.create(
         'bob',
         crypto.randomUUID(),
-        [image, image, image],
+        [image, image],
         'success'
       );
       await sql.execute({
@@ -164,8 +159,8 @@ test('invalid, disguised, tiny and oversized images are rejected; valid images d
 test('unpaid jobs never run; duplicate order/payment is idempotent; ownership enforced', async () => {
   const key = crypto.randomUUID();
   const [a, b] = await Promise.all([
-    service.create('alice', key, [image, image, image], 'success', '720P'),
-    service.create('alice', key, [image, image, image], 'success', '720P'),
+    service.create('alice', key, [image, image], 'success', '720P'),
+    service.create('alice', key, [image, image], 'success', '720P'),
   ]);
   assert.equal(a.id, b.id);
   assert.equal((await service.owned('alice', a.id)).resolution, '720P');
@@ -200,7 +195,7 @@ test('timeout reconciles the original task without a second provider ID; failure
     const job = await service.create(
       'alice',
       crypto.randomUUID(),
-      [image, image, image],
+      [image, image],
       scenario
     );
     await service.payMock('alice', job.id);
@@ -231,7 +226,7 @@ test('deletion revokes and removes photos; expiry worker cleans expired uploads'
   const job = await service.create(
     'alice',
     crypto.randomUUID(),
-    [image, image, image],
+    [image, image],
     'success'
   );
   const keys = JSON.parse((await service.owned('alice', job.id)).photos);
@@ -253,7 +248,6 @@ test('Kie request retains separate references and enables model-generated audio;
   const images = [
     'https://assets.example/a.jpg',
     'https://assets.example/b.jpg',
-    'https://assets.example/c.jpg',
   ];
   const reference = {
     url: 'https://assets.example/reference.mp4',
@@ -267,14 +261,14 @@ test('Kie request retains separate references and enables model-generated audio;
     );
   assert.throws(() => dancePayload(images, reference, '4K' as never));
   assert.equal(payload.model, 'wan/3-0-video');
-  assert.equal(payload.input.duration, 15);
-  assert.equal(payload.input.resolution, '480P');
+  assert.equal(payload.input.duration, 14);
+  assert.equal(payload.input.resolution, '720P');
   assert.equal('generate_audio' in payload.input, false);
   assert.throws(() => dancePayload(images, undefined as never));
   assert.deepEqual(payload.input.reference_video_urls, [reference.url]);
   assert.equal(
     dancePayload(images, { ...reference, durationSeconds: 15 }).input.duration,
-    15
+    14
   );
   for (const durationSeconds of [0, 15.01, 20, NaN, Infinity])
     assert.throws(() =>
@@ -297,7 +291,7 @@ test('Kie request retains separate references and enables model-generated audio;
       const sent = JSON.parse(String(init.body));
       assert.equal(sent.model, 'wan/3-0-video');
       assert.equal(sent.input.audio, true);
-      assert.equal(sent.input.duration, 15);
+      assert.equal(sent.input.duration, 14);
       assert.deepEqual(sent.input.reference_video_urls, [
         'https://assets.example/reference.mp4',
       ]);
@@ -346,7 +340,7 @@ test('signed duplicate payment webhook only queues once; invalid signature, unpa
   const job = await service.create(
     'alice',
     crypto.randomUUID(),
-    [image, image, image],
+    [image, image],
     'success'
   );
   process.env.DANCE_PAYMENT_MODE = 'stripe-test';

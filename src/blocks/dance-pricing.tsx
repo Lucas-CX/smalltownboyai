@@ -2,7 +2,8 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 
 import { useSession } from '@/core/auth/client';
-import { useRouter } from '@/core/i18n/navigation';
+import { Link, useRouter } from '@/core/i18n/navigation';
+import { envConfigs } from '@/config';
 import { apiGet, apiPost } from '@/lib/api-client';
 import { browserUuid } from '@/lib/browser-uuid';
 import { danceErrorReason, trackDance } from '@/lib/dance-analytics';
@@ -17,7 +18,6 @@ import { dancePurchaseOffer } from '@/lib/dance-purchase-offer';
 import { danceResolutions, type DanceResolution } from '@/lib/dance-settings';
 import { m } from '@/paraglide/messages.js';
 import { getLocale, localizeHref } from '@/paraglide/runtime.js';
-import { DanceContentLink as Link } from '@/blocks/dance-content-link';
 import { DancePricingFacts } from '@/blocks/dance-pricing-facts';
 import { LocaleSelector } from '@/components/locale-selector';
 import { Button } from '@/components/ui/button';
@@ -44,6 +44,7 @@ export function DancePricing({
   onContinue?: () => void;
   beforeCheckout?: () => Promise<void>;
 }) {
+  const previewOnly = envConfigs.preview_only === 'true';
   const authSession = useSession();
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
@@ -198,7 +199,7 @@ export function DancePricing({
           : savingSelection
             ? 'checkout_pending'
             : 'ready';
-  const ctaDisabled = ctaState !== 'ready';
+  const ctaDisabled = previewOnly || ctaState !== 'ready';
   useEffect(() => {
     if (forGeneration)
       trackDance('dance_purchase_cta_state', {
@@ -236,6 +237,7 @@ export function DancePricing({
     return () => observer.disconnect();
   }, [forGeneration, ctaState, resolution, offer.plan?.id]);
   async function selectPlan(selected: (typeof dancePlans)[number]) {
+    if (previewOnly) return;
     if (selectionLock.current || checkoutLock.current || session.isPending)
       return;
     selectionLock.current = true;
@@ -471,6 +473,7 @@ export function DancePricing({
                 <Button
                   className="dance-primary"
                   disabled={
+                    previewOnly ||
                     (forGeneration &&
                       plan.credits + (settings.data?.balance ?? 0) <
                         requiredCredits) ||
@@ -483,11 +486,13 @@ export function DancePricing({
                     selectPlan(plan);
                   }}
                 >
-                  {purchase.isPending
-                    ? m['dance.loading']()
-                    : forGeneration
-                      ? m['dance.paygenerate']()
-                      : m['dance.buy']()}
+                  {previewOnly
+                    ? m['dance.coming_soon']()
+                    : purchase.isPending
+                      ? m['dance.loading']()
+                      : forGeneration
+                        ? m['dance.paygenerate']()
+                        : m['dance.buy']()}
                 </Button>
                 <small>
                   {forGeneration &&

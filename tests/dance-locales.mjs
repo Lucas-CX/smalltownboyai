@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readdirSync, readFileSync } from 'node:fs';
 
-const markets = ['it', 'ru', 'pt-BR'];
+const markets = ['zh'];
 const read = (path) =>
   readFileSync(new URL('../' + path, import.meta.url), 'utf8');
 const english = JSON.parse(read('messages/en.json'));
@@ -59,7 +59,7 @@ for (const locale of markets) {
   }
 }
 console.log(
-  'Translation keys, placeholders, MDX assets and links passed for three locales.'
+  'Translation keys, placeholders, MDX assets and links passed for English and Chinese.'
 );
 
 if (process.env.I18N_TEST_URL) {

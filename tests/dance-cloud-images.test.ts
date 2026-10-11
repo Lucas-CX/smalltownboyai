@@ -70,7 +70,7 @@ test('local and Workers normalization preserve the new minimum and 8:1 boundary'
   }
 });
 
-test('all bundled defaults pass Workers image validation and the native decoder pipeline', async () => {
+test('both role uploads pass Workers image validation and the native decoder pipeline', async () => {
   let calls = 0;
   (globalThis as any).__CF_ENV__ = {
     IMAGES: {
@@ -98,14 +98,10 @@ test('all bundled defaults pass Workers image validation and the native decoder 
     })
       .jpeg()
       .toBuffer();
-    for (let role = 0; role < 3; role++) {
-      const cast = completeDanceCast(
-        [0, 1, 2].map((i) => (i === role ? input : null))
-      );
-      for (const photo of cast)
-        assert.ok((await normalizePhoto(photo)).length > 0);
-    }
-    assert.equal(calls, 9);
+    const cast = completeDanceCast([input, input]);
+    for (const photo of cast)
+      assert.ok((await normalizePhoto(photo)).length > 0);
+    assert.equal(calls, 2);
   } finally {
     delete (globalThis as any).__CF_ENV__;
   }

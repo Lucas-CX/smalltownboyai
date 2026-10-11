@@ -18,7 +18,6 @@ import {
   funnelBatchSchema,
   funnelParamsSchema,
 } from '../src/lib/dance-funnel-contract';
-import { danceEntryLocales } from '../src/lib/dance-market-scope';
 import { danceProgress } from '../src/lib/dance-progress';
 import {
   clearPurchaseIntent,
@@ -222,7 +221,7 @@ test('public acquisition survives while private paths and auth/payment referrals
   for (const path of [
     '/admin',
     '/zh/admin/users',
-    '/pt-BR/settings',
+    '/zh/settings',
     '/sign-in',
     '/api/dance',
   ])
@@ -254,7 +253,7 @@ test('public acquisition survives while private paths and auth/payment referrals
 test('the actual GA bootstrap executes independently and never configures private/diagnostic visits', () => {
   for (const [path, diagnostic, expected] of [
     ['/', false, 1],
-    ['/pt-BR/admin', false, 0],
+    ['/zh/admin', false, 0],
     ['/', true, 0],
   ] as const) {
     const context: Record<string, any> = {
@@ -297,11 +296,7 @@ test('UI copy matches each language support scope and preserves placeholders', (
     const messages = JSON.parse(
       readFileSync(`messages/${locale}.json`, 'utf8')
     );
-    // Entry-only markets explicitly continue in the English studio. Validate
-    // their entire landing page instead of requiring unused studio messages.
-    const requiredKeys = danceEntryLocales.some((entry) => entry === locale)
-      ? Object.keys(en).filter((key) => key.startsWith('market.'))
-      : keys;
+    const requiredKeys = keys;
     for (const key of requiredKeys) {
       const value = messages[key];
       if (typeof value !== 'string' || !value.trim()) {

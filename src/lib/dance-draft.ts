@@ -2,7 +2,7 @@ import { browserUuid } from '@/lib/browser-uuid';
 import type { DanceResolution } from '@/lib/dance-settings';
 
 type Draft = {
-  castVersion?: 'v1';
+  castVersion?: 'smalltown-duo-v1';
   resolution?: DanceResolution;
   photos: (string | null)[];
   consent: boolean;
@@ -10,11 +10,11 @@ type Draft = {
   ownerId?: string;
   expiresAt?: number;
 };
-const key = 'dance-draft-tab';
-const backupKey = 'dance-draft-backup';
+const key = 'smalltown-draft-tab';
+const backupKey = 'smalltown-draft-backup';
 async function database() {
   return new Promise<IDBDatabase>((resolve, reject) => {
-    const request = indexedDB.open('dance-drafts', 1);
+    const request = indexedDB.open('smalltown-drafts', 1);
     let settled = false;
     const timer = setTimeout(() => {
       settled = true;
@@ -67,7 +67,7 @@ async function access<T>(
 export async function saveDanceDraft(draft: Draft) {
   const value = {
     ...draft,
-    castVersion: draft.castVersion || 'v1',
+    castVersion: draft.castVersion || 'smalltown-duo-v1',
     expiresAt: Date.now() + 30 * 60 * 1000,
   };
   try {
@@ -119,11 +119,11 @@ export async function loadDanceDraft(
   if (
     draft &&
     (!Array.isArray(draft.photos) ||
-      draft.photos.length !== 3 ||
+      draft.photos.length !== 2 ||
       !draft.photos.every(
         (photo) => photo === null || typeof photo === 'string'
       ) ||
-      (draft.castVersion !== undefined && draft.castVersion !== 'v1') ||
+      draft.castVersion !== 'smalltown-duo-v1' ||
       (draft.expiresAt || 0) < Date.now() ||
       (draft.ownerId && draft.ownerId !== ownerId))
   ) {

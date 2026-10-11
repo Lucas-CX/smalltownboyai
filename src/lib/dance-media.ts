@@ -1,14 +1,12 @@
-// Development preview fixture; replace together with the reference before launching a new template.
+// Approved fictional cat/dog sample; original reference soundtrack restored in postproduction.
 export const danceTrendPreview = {
-  src: '/media/wan-reference-v1/example-faststart.mp4',
-  poster: '/media/wan-reference-v1/poster.webp',
-  width: 480,
-  height: 854,
-  duration: 'PT15.02S',
-  cast: ['dancer', 'selfie', 'car-exit'].map(
-    (role) => `/media/launch/input-${role}.webp`
-  ),
-  frames: ['dancer', 'selfie', 'car-exit', 'ending'].map(
-    (role) => `/media/wan-reference-v1/${role}.webp`
-  ),
+  src: '/media/smalltown-duo-v1/example.mp4',
+  poster: '/media/smalltown-duo-v1/poster.webp',
+  width: 720,
+  height: 1280,
+  duration: 'PT14S',
+  cast: [
+    '/media/smalltown-duo-v1/input-1.webp',
+    '/media/smalltown-duo-v1/input-2.webp',
+  ],
 } as const;

@@ -1,9 +1,9 @@
-// Immutable, server-inspected reference. Update the asset and this manifest together.
+// Immutable reference, inspected as 14 seconds. Update asset and manifest together.
 export const danceTemplate = {
-  version: 'male-dancer-v1-15s',
-  path: '/media/wan-reference-v1/reference.mp4',
-  durationSeconds: 14.92,
-  outputSeconds: 15,
-  byteLength: 2266934,
-  sha256: 'f468b3654658dfe77cb690024f4eacd8066be7c375da004df5745092a170c272',
+  version: 'smalltown-red-fence-v1-14s',
+  path: '/media/smalltown-duo-v1/reference.mp4',
+  durationSeconds: 14,
+  outputSeconds: 14,
+  byteLength: 995433,
+  sha256: 'fc1f38ac649a0526ae2b25bb99dd0219c8c8e99b6b6dee89eafbea2fb0ba5913',
 } as const;

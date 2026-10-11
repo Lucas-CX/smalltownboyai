@@ -1,9 +1,7 @@
 import { resolveDanceCast } from '@/lib/dance-cast';
 
-import assets from './dance-default-cast.json';
-
 export function completeDanceCast(photos: (Uint8Array | null)[]) {
-  return resolveDanceCast(photos, (index) =>
-    Buffer.from(assets[index].base64, 'base64')
-  );
+  const cast = resolveDanceCast(photos);
+  if (cast.some((photo) => !photo.byteLength)) throw new Error('Empty photo');
+  return cast;
 }

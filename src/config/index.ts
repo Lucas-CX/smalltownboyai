@@ -25,9 +25,12 @@ export const envConfigs: Record<string, string> = {
     publicEnv('VITE_APP_URL') ??
     'http://localhost:3000',
   site_indexable: publicEnv('VITE_SITE_INDEXABLE') ?? 'false',
-  app_name: publicEnv('VITE_APP_NAME') ?? 'Video Studio',
+  preview_only: publicEnv('VITE_PREVIEW_ONLY') ?? 'false',
+  app_name: publicEnv('VITE_APP_NAME') ?? 'Smalltown Boy AI',
   app_brand:
-    publicEnv('VITE_APP_BRAND') ?? publicEnv('VITE_APP_NAME') ?? 'Video Studio',
+    publicEnv('VITE_APP_BRAND') ??
+    publicEnv('VITE_APP_NAME') ??
+    'Smalltown Boy AI',
   app_description:
     publicEnv('VITE_APP_DESCRIPTION') ?? 'Create videos from your photos',
   app_logo: publicEnv('VITE_APP_LOGO') ?? '/logo.svg',

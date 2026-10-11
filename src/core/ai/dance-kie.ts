@@ -8,36 +8,23 @@ import { verifyDanceReference } from './dance-reference';
  * Native provider audio is delivered unchanged; prompt compliance is not guaranteed.
  */
 export const DANCE_MODEL = 'wan/3-0-video';
-export const DANCE_PROMPT_VERSION = 'reference-replacement-v1';
-export const DANCE_PROMPT = `Create a 15-second video by replacing the three main performers in Video1 with the corresponding people from Image1, Image2, and Image3.
+export const DANCE_PROMPT_VERSION = 'smalltown-duo-v1';
+export const DANCE_PROMPT = `Recast Video1 using Image1 and Image2. Produce a 14-second vertical video that follows the reference performance at its original speed.
 
-ROLE MAPPING
-- Image1 replaces the opening dancer.
-- Image2 replaces the selfie-camera performer.
-- Image3 replaces the person revealed at the car.
-Keep this mapping fixed throughout the video, including when a person turns away, becomes partially occluded, or reappears.
+ROLE ASSIGNMENT
+Image1 replaces the subject nearest the camera at the opening, performing the exaggerated head-clutching and open-mouth reaction. Image2 replaces the subject dancing behind that opening foreground performer. These assignments refer to the original performers, not fixed left/right positions. Track each identity through movement, cuts, overlap and changes in screen position. Keep exactly these two performers throughout the video.
 
-APPEARANCE
-Use each image as the primary appearance reference for its assigned person. Preserve their facial features, hairstyle, hair color, visible body proportions, clothing, footwear, and accessories as closely as possible.
-Do not blend identities or inherit the original video performers' appearance.
-Where the photo does not show a detail, infer it conservatively and keep it consistent throughout the video.
-Adapt lighting and perspective naturally to the scene without changing the person's defining appearance.
+IDENTITY AND ANATOMY
+Each image determines its assigned subject's identity, species, face, head shape, ears, hair or fur, colors, markings, body proportions, clothing and accessories where present. Preserve those distinctive features consistently. Replace both original performers completely in every shot. Do not inherit the original performers' appearance or accessories. Do not blend or swap identities. Keep the species and anatomy of each uploaded subject: a human remains human; an animal retains its own head, muzzle, ears, coat, paws and tail where applicable. Transfer the performance's upright poses and gestures naturally to that subject without changing its species. Do not add human hands to an animal or animal features to a human. Avoid extra limbs, fused bodies and duplicate subjects.
 
-MOTION AND SCENE
-Use Video1 as the primary reference for choreography, gestures, poses, expressions, movement speed, camera motion, framing, shot order, transitions, and timing.
-Preserve the background, vehicles, objects, and interactions with the environment.
-Replace the people while retaining the reference performance. Do not invent new dance moves, add scenes, reorder shots, or change the ending.
+PERFORMANCE, COMEDY AND SCENE
+Video1 determines the complete choreography, gestures, expressive timing, gaze, head movement, poses, motion speed, camera movement, lens perspective, shot order, cuts, background and lighting. Follow its actual timeline exactly; do not invent extra beats or role swaps. Preserve the comic contrast between the exaggerated foreground reaction and the cheerful background dance, the following side-by-side performance, and the final approach toward the lens. Preserve the size and timing of the expressions and physical gestures, adapted to each subject's anatomy. Keep both identities recognizable during close-ups, turns, wide shots and the ending. Do not substitute generic dancing, change the scene, insert new shots, loop actions, slow down, or pad with frozen frames.
 
 AUDIO
-Preserve the reference video's music, melody, rhythm, tempo, and audio timing as closely as possible. Keep the movements synchronized with the reference beat.
-Do not compose replacement music or add new speech or sound effects.
+Preserve Video1's existing soundtrack, melody, tune, rhythm, tempo and timing as closely as possible. Synchronize the performance and cuts with the reference beats. Do not compose a new tune, replace the song, add dialogue, or add sound effects.
 
 PRIORITY
-For identity and appearance, prioritize the assigned image.
-For movement, camera, scene structure, and timing, prioritize Video1.
-For music and synchronization, prioritize the reference audio.
-
-Output a coherent vertical video at natural speed, without added text, subtitles, logos, or watermarks.`;
+Use Image1 and Image2 for identity and appearance; use Video1 for performance, scene, camera, timing and soundtrack. Output 14 seconds, vertical 9:16, natural speed, without text, logos, watermarks, intro, outro or fades.`;
 
 // Metadata must come from server-side media inspection, never a browser assertion.
 export type DanceReference = { url: string; durationSeconds: number };
@@ -45,11 +32,11 @@ export type DanceReference = { url: string; durationSeconds: number };
 export function dancePayload(
   images: string[],
   reference: DanceReference,
-  resolution: DanceResolution = '480P'
+  resolution: DanceResolution = '720P'
 ) {
   if (!isDanceResolution(resolution)) throw new Error('Invalid resolution');
-  if (images.length !== 3)
-    throw new Error('Exactly three character images required');
+  if (images.length !== 2)
+    throw new Error('Exactly two character images required');
   if (
     !reference ||
     !Number.isFinite(reference.durationSeconds) ||
@@ -139,7 +126,7 @@ export class KieDanceClient {
   async submit(
     images: string[],
     reference: DanceReference,
-    resolution: DanceResolution = '480P'
+    resolution: DanceResolution = '720P'
   ) {
     const data = await this.call(
       'jobs/createTask',

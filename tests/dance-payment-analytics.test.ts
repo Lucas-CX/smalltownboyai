@@ -20,7 +20,7 @@ const paid = {
 };
 
 test('checkout identifies this app and returns to the selected language', () => {
-  for (const locale of ['en', 'zh', 'it', 'ru', 'pt-BR']) {
+  for (const locale of ['en', 'zh']) {
     const options = danceCheckoutPresentation('https://example.test', locale);
     assert.equal(options.branding_settings.display_name, envConfigs.app_name);
     assert.equal(options.locale, locale);

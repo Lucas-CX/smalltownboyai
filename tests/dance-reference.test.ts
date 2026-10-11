@@ -57,7 +57,7 @@ test('reference corruption and upload redirects fail before generation', async (
   assert.equal(calls, 1);
 });
 
-test('paid Workers submission sends three ordered photos and a fresh video reference in one 15-second task', async () => {
+test('paid Workers submission sends two ordered photos and a fresh video reference in one 14-second task', async () => {
   const previousFetch = globalThis.fetch;
   const previousBindings = (globalThis as any).__CF_ENV__;
   const envKeys = [
@@ -85,7 +85,7 @@ test('paid Workers submission sends three ordered photos and a fresh video refer
         }),
       },
     };
-    for (let i = 0; i < 3; i++)
+    for (let i = 0; i < 2; i++)
       photos.push(await savePrivate(Buffer.from(`ordered-photo-${i}`)));
     globalThis.fetch = async (input, init) => {
       const url = String(input);
@@ -95,7 +95,7 @@ test('paid Workers submission sends three ordered photos and a fresh video refer
         assert.equal(init?.redirect, 'manual');
         const file = (init!.body as FormData).get('file') as File;
         const bytes = Buffer.from(await file.arrayBuffer());
-        if (uploads.length < 3)
+        if (uploads.length < 2)
           assert.equal(bytes.toString(), `ordered-photo-${uploads.length}`);
         else {
           assert.equal(file.type, 'video/mp4');
@@ -108,13 +108,13 @@ test('paid Workers submission sends three ordered photos and a fresh video refer
       assert.ok(url.endsWith('jobs/createTask'));
       taskCalls++;
       const payload = JSON.parse(String(init?.body));
-      assert.deepEqual(payload.input.reference_image_urls, uploads.slice(0, 3));
-      assert.deepEqual(payload.input.reference_video_urls, [uploads[3]]);
-      assert.equal(payload.input.duration, 15);
+      assert.deepEqual(payload.input.reference_image_urls, uploads.slice(0, 2));
+      assert.deepEqual(payload.input.reference_video_urls, [uploads[2]]);
+      assert.equal(payload.input.duration, 14);
       assert.equal(payload.input.resolution, '720P');
       assert.equal(payload.input.audio, true);
-      assert.match(payload.input.prompt, /footwear/);
-      assert.match(payload.input.prompt, /Do not compose replacement music/);
+      assert.match(payload.input.prompt, /species/);
+      assert.match(payload.input.prompt, /Do not compose a new tune/);
       return Response.json({ code: 200, data: { taskId: 'fixture-task' } });
     };
     assert.equal(
@@ -130,7 +130,7 @@ test('paid Workers submission sends three ordered photos and a fresh video refer
       'fixture-task'
     );
     assert.equal(taskCalls, 1);
-    assert.equal(uploads.length, 4);
+    assert.equal(uploads.length, 3);
   } finally {
     globalThis.fetch = previousFetch;
     (globalThis as any).__CF_ENV__ = previousBindings;

@@ -35,6 +35,17 @@ import '@/styles/globals.css';
 // Public integration IDs live in the DB config (cached for 60s). Fetched via a
 // server function so drizzle/db code never reaches the client bundle.
 const getAnalyticsConfigs = createServerFn().handler(async () => {
+  if (envConfigs.preview_only === 'true')
+    return {
+      gaId: '',
+      clarityId: '',
+      plausibleDomain: '',
+      plausibleSrc: '',
+      adsenseCode: '',
+      crispWebsiteId: '',
+      tawkPropertyId: '',
+      tawkWidgetId: '',
+    };
   const { getSiteIntegrationConfigs } =
     await import('@/modules/config/service');
   const configs = await getSiteIntegrationConfigs();

@@ -1,3 +1,4 @@
+import { envConfigs } from '@/config';
 import { externalAnalyticsAllowed } from '@/lib/analytics-policy';
 import { trackClarityEvent } from '@/lib/clarity';
 import { queueDanceFunnel } from '@/lib/dance-funnel-client';
@@ -23,7 +24,6 @@ type Params = Pick<
   | 'error_fingerprint'
   | 'browser_family'
   | 'entry_article'
-  | 'entry_market'
 > & {
   photo_count?: number;
   default_roles?: number;
@@ -40,8 +40,6 @@ type Params = Pick<
 };
 
 export type DanceEvent =
-  | 'dance_market_landing_viewed'
-  | 'dance_market_entry_clicked'
   | 'dance_quote_viewed'
   | 'dance_resolution_changed'
   | 'dance_photo_picker_opened'
@@ -92,7 +90,8 @@ export function trackDance(
   params: Params = {},
   persist = true
 ) {
-  if (typeof window === 'undefined') return false;
+  if (envConfigs.preview_only === 'true' || typeof window === 'undefined')
+    return false;
   if (persist) queueDanceFunnel(event, params);
   if (!externalAnalyticsAllowed()) return false;
   if (persist) trackClarityEvent(event);
@@ -120,7 +119,6 @@ export function trackDance(
         'error_fingerprint',
         'browser_family',
         'entry_article',
-        'entry_market',
       ]
         .filter((key) => params[key as keyof Params] !== undefined)
         .map((key) => [key, params[key as keyof Params]])
