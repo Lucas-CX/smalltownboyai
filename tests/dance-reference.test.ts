@@ -61,6 +61,8 @@ test('paid Workers submission sends two ordered photos and a fresh video referen
   const previousFetch = globalThis.fetch;
   const previousBindings = (globalThis as any).__CF_ENV__;
   const envKeys = [
+    'AUTH_SECRET',
+    'VITE_APP_URL',
     'DATABASE_PROVIDER',
     'DANCE_CLOUD_ENABLED',
     'DANCE_PAYMENT_MODE',
@@ -71,6 +73,8 @@ test('paid Workers submission sends two ordered photos and a fresh video referen
   const uploads: string[] = [];
   let taskCalls = 0;
   try {
+    process.env.AUTH_SECRET = 'local-callback-fixture-secret-not-production';
+    process.env.VITE_APP_URL = 'https://example.test';
     process.env.DATABASE_PROVIDER = 'd1';
     process.env.DANCE_CLOUD_ENABLED = 'true';
     process.env.DANCE_PAYMENT_MODE = 'stripe-live';
@@ -110,6 +114,14 @@ test('paid Workers submission sends two ordered photos and a fresh video referen
       const payload = JSON.parse(String(init?.body));
       assert.deepEqual(payload.input.reference_image_urls, uploads.slice(0, 2));
       assert.deepEqual(payload.input.reference_video_urls, [uploads[2]]);
+      const callback = new URL(payload.callBackUrl);
+      assert.equal(callback.origin, 'https://example.test');
+      assert.equal(callback.pathname, '/api/dance/kie-callback');
+      assert.equal(
+        callback.searchParams.get('job'),
+        '00000000-0000-4000-8000-000000000001'
+      );
+      assert.match(callback.searchParams.get('token')!, /^[a-f0-9]{64}$/);
       assert.equal(payload.input.duration, 14);
       assert.equal(payload.input.resolution, '720P');
       assert.equal(payload.input.audio, true);
@@ -120,7 +132,7 @@ test('paid Workers submission sends two ordered photos and a fresh video referen
     assert.equal(
       await submitRealDance(
         {
-          id: 'fixture',
+          id: '00000000-0000-4000-8000-000000000001',
           userId: 'fixture-user',
           resolution: '720P',
           photos: JSON.stringify(photos),

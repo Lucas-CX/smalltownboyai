@@ -72,6 +72,7 @@ async function handle({ request }: { request: Request }) {
       return respData(
         await createDanceCheckout({
           key: config.stripe_secret_key || '',
+          kieKey: config.kie_api_key,
           signingSecret:
             config.stripe_signing_secret || config.stripe_webhook_secret,
           userId: session.user.id,

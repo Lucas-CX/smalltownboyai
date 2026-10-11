@@ -14,11 +14,11 @@ import {
 test('recommendation covers the selected quality and uses existing credits before a new pack', () => {
   for (const [quality, balance, expected] of [
     ['480P', 0, 'single'],
-    ['720P', 0, 'friends'],
+    ['720P', 0, 'single'],
     ['1080P', 0, 'friends'],
-    ['720P', 49, 'friends'],
+    ['720P', 49, 'single'],
     ['720P', 50, 'single'],
-    ['1080P', 149, 'friends'],
+    ['1080P', 149, 'single'],
     ['1080P', 150, 'single'],
     ['1080P', 250, undefined],
     ['480P', 100, undefined],
@@ -31,8 +31,8 @@ test('recommendation covers the selected quality and uses existing credits befor
   }
   assert.equal(dancePurchaseOffer(100, NaN).plan?.id, 'single');
   assert.equal(dancePurchaseOffer(100, -100).plan?.id, 'single');
-  assert.equal(dancePurchaseOffer(150, 50).plan?.cents, 990);
-  assert.equal(dancePurchaseOffer(150).plan?.cents, 3290);
+  assert.equal(dancePurchaseOffer(150, 50).plan?.cents, 790);
+  assert.equal(dancePurchaseOffer(150).plan?.cents, 790);
   assert.equal(dancePurchaseOffer(2000).plan, undefined);
   assert.equal(dancePurchaseOffer(2000).canContinue, false);
   assert.throws(() => dancePurchaseOffer(NaN));
@@ -95,14 +95,14 @@ test('purchase and runtime diagnostics retain fixed categories and strip private
 
 test('upfront quote distinguishes unknown balance, pack total and covered generation', () => {
   assert.equal(danceUpfrontQuote(150, null), null);
-  assert.equal(danceUpfrontQuote(150, 0)?.cents, 3290);
-  assert.equal(danceUpfrontQuote(150, 0)?.remaining, 250);
-  assert.equal(danceUpfrontQuote(150, 50)?.cents, 990);
+  assert.equal(danceUpfrontQuote(150, 0)?.cents, 790);
+  assert.equal(danceUpfrontQuote(150, 0)?.remaining, 0);
+  assert.equal(danceUpfrontQuote(150, 50)?.cents, 790);
   assert.equal(danceUpfrontQuote(250, 250)?.cents, 0);
   assert.equal(danceUpfrontQuote(250, 300)?.remaining, 50);
   assert.equal(
-    funnelParamsSchema.parse({ quote_cents: 3290, photo_decoder: 'image' })
+    funnelParamsSchema.parse({ quote_cents: 790, photo_decoder: 'image' })
       .quote_cents,
-    3290
+    790
   );
 });

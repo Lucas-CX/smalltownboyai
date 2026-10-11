@@ -134,20 +134,6 @@ export default defineConfig({
       srcDirectory: 'src',
     }),
     viteReact(),
-    nitro(
-      isCloudflareBuild && process.env.VITE_PREVIEW_ONLY !== 'true'
-        ? {
-            experimental: { tasks: true },
-            tasks: {
-              'dance:tick': {
-                handler: fileURLToPath(
-                  new URL('./src/tasks/dance-tick.ts', import.meta.url)
-                ),
-              },
-            },
-            scheduledTasks: { '* * * * *': ['dance:tick'] },
-          }
-        : {}
-    ),
+    nitro(),
   ],
 });

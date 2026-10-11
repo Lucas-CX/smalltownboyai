@@ -1,14 +1,14 @@
 import type { DanceResolution } from './dance-settings';
 
 // Update when the public pricing explanation is reviewed, not on every build.
-export const DANCE_PRICING_REVIEWED_AT = '2026-10-09';
+export const DANCE_PRICING_REVIEWED_AT = '2026-10-11';
 
 export const DANCE_RESOLUTION_CREDITS = {
   '480P': 100,
   '720P': 150,
   '1080P': 250,
 } as const;
-export const DANCE_CREDITS_PER_VIDEO = DANCE_RESOLUTION_CREDITS['480P'];
+export const DANCE_CREDITS_PER_VIDEO = DANCE_RESOLUTION_CREDITS['720P'];
 export function danceCreditCost(
   resolution: string | null | undefined = '480P'
 ) {
@@ -18,7 +18,7 @@ export function danceCreditCost(
   return DANCE_RESOLUTION_CREDITS[quality as DanceResolution];
 }
 export const dancePlans = [
-  { id: 'single', videos: 1, credits: 100, cents: 990 },
-  { id: 'friends', videos: 4, credits: 400, cents: 3290 },
-  { id: 'collection', videos: 10, credits: 1000, cents: 7490 },
+  { id: 'single', videos: 1, credits: 150, cents: 790 },
+  { id: 'friends', videos: 3, credits: 450, cents: 1990 },
+  { id: 'collection', videos: 5, credits: 750, cents: 2990 },
 ] as const;

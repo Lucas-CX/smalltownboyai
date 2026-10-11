@@ -3,6 +3,7 @@ import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { readDanceReference, readPrivate } from '@/core/storage/dance-private';
 import { danceTemplate } from '@/lib/dance-template';
 
+import { danceCallbackUrl } from './dance-callback';
 import { DANCE_PROMPT_VERSION, KieDanceClient } from './dance-kie';
 
 // Operator-created local permit. Never derived from a browser field or an order number.
@@ -42,6 +43,7 @@ export async function submitRealDance(
   job: { id: string; userId: string; resolution: string; photos: string },
   key: string
 ) {
+  const callbackUrl = danceCallbackUrl(job.id);
   const permit = await realDancePermit(job.userId, job.resolution);
   if (!permit || !key) throw new Error('Real test configuration missing');
   const client = new KieDanceClient(key);
@@ -89,7 +91,7 @@ export async function submitRealDance(
     images.push(payload.data.downloadUrl);
   }
   const reference = await client.uploadReference(await readDanceReference());
-  return client.submit(images, reference, '480P');
+  return client.submit(images, reference, '480P', callbackUrl);
 }
 
 export { downloadDanceResult } from './dance-result';

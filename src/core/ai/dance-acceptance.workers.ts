@@ -4,6 +4,7 @@ import { readDanceReference, readPrivate } from '@/core/storage/dance-private';
 import { isDanceResolution } from '@/lib/dance-settings';
 import { danceTemplate } from '@/lib/dance-template';
 
+import { danceCallbackUrl } from './dance-callback';
 import { DANCE_PROMPT_VERSION, KieDanceClient } from './dance-kie';
 
 export { downloadDanceResult } from './dance-result';
@@ -38,6 +39,7 @@ export async function submitRealDance(
   job: { id: string; userId: string; resolution: string; photos: string },
   key: string
 ) {
+  const callbackUrl = danceCallbackUrl(job.id);
   const photos: unknown = JSON.parse(job.photos);
   if (
     !Array.isArray(photos) ||
@@ -135,5 +137,5 @@ export async function submitRealDance(
   // this point must be reconciled in provider logs, never automatically retried.
   await stage('submitting-generation');
   if (!isDanceResolution(job.resolution)) throw new Error('Invalid resolution');
-  return client.submit(images, reference, job.resolution);
+  return client.submit(images, reference, job.resolution, callbackUrl);
 }

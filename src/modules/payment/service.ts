@@ -57,7 +57,7 @@ export async function purchaseDancePreviewCredits(
         amount: pack.cents,
         currency: 'usd',
         productId: pack.id,
-        productName: 'Dance preview credits',
+        productName: `${pack.videos} × 720p video (local preview)`,
         creditsAmount: pack.credits,
         paymentType: 'one-time',
         paymentProvider: 'mock',
@@ -79,7 +79,7 @@ export async function purchaseDancePreviewCredits(
         throw new Error('Purchase does not match');
       return {
         orderNo,
-        credits: pack.credits,
+        credits: existing.creditsAmount,
         duplicate: true,
         simulation: true,
       };

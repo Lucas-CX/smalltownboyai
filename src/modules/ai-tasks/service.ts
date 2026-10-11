@@ -117,13 +117,17 @@ export async function queueDanceWithCredits(userId: string, jobId: string) {
 }
 
 // Idempotent credit restoration for failed preview jobs; never a monetary refund.
-export async function restoreFailedDanceCredits() {
-  if (cloudDanceEnabled()) return restoreCloudDance();
+export async function restoreFailedDanceCredits(
+  scope: { userId?: string; jobId?: string } = {}
+) {
+  if (cloudDanceEnabled()) return restoreCloudDance(scope);
   const jobs = await db()
     .select()
     .from(danceJob)
     .where(
       and(
+        scope.userId ? eq(danceJob.userId, scope.userId) : undefined,
+        scope.jobId ? eq(danceJob.id, scope.jobId) : undefined,
         eq(danceJob.status, 'failed'),
         inArray(danceJob.paymentMode, ['credits-preview', 'credits-test'])
       )

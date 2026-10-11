@@ -46,7 +46,11 @@ export default {
       envConfigs.seo_url
     );
     if (canonicalTarget) return Response.redirect(canonicalTarget, 308);
-    const preview = previewResponse(req, envConfigs.preview_only === 'true');
+    const preview = previewResponse(
+      req,
+      envConfigs.preview_only === 'true',
+      envConfigs.backoffice_enabled === 'true'
+    );
     if (preview) return preview;
     const pageRequest = danceHtmlPageRequest(
       req,

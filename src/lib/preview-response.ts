@@ -3,11 +3,26 @@ import { respData, respErr } from './resp';
 // Display-only deployments must work without a database and cannot accept mutations.
 export function previewResponse(
   request: Request,
-  enabled: boolean
+  enabled: boolean,
+  backofficeEnabled = false
 ): Response | null {
   if (!enabled) return null;
   const url = new URL(request.url);
   const path = url.pathname.replace(/^\/zh(?=\/|$)/, '') || '/';
+  // Allow the authenticated backoffice to be configured before public launch.
+  // Authorization remains enforced by the normal auth and admin handlers.
+  if (
+    backofficeEnabled &&
+    (/^\/(admin|sign-in|auth-callback)(\/|$)/.test(path) ||
+      /^\/api\/(auth|admin)(\/|$)/.test(path) ||
+      (request.method === 'GET' &&
+        [
+          '/api/config/public',
+          '/api/user/info',
+          '/api/user/permissions',
+        ].includes(path)))
+  )
+    return null;
   const headers = {
     'Cache-Control': 'no-store',
     'X-Content-Type-Options': 'nosniff',

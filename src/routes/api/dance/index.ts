@@ -9,6 +9,7 @@ import { queueDanceWithCredits } from '@/modules/ai-tasks/service';
 import { getBalance } from '@/modules/credits/service';
 import * as dance from '@/modules/dance/service';
 import { dancePhotosSchema } from '@/lib/dance-cast';
+import { advanceDanceJobs } from '@/lib/dance-events.server';
 import { danceCreditCost } from '@/lib/dance-plans';
 import { danceResolutions } from '@/lib/dance-settings';
 import { enforceMinIntervalRateLimit } from '@/lib/rate-limit';
@@ -74,8 +75,16 @@ async function handler({ request }: { request: Request }) {
           'credits-live',
           'credits-restored',
         ].includes(existing.paymentMode)
-      )
-        return respData(dance.visible(existing));
+      ) {
+        await advanceDanceJobs({
+          userId: session.user.id,
+          jobId: existing.id,
+          reason: 'submit',
+        });
+        return respData(
+          dance.visible(await dance.owned(session.user.id, existing.id))
+        );
+      }
       if (
         (cloudDanceEnabled()
           ? await cloudDanceBalance(session.user.id)
@@ -106,7 +115,14 @@ async function handler({ request }: { request: Request }) {
           default_roles: data.photos.filter((photo) => photo === null).length,
         },
       });
-      return respData(dance.visible(queued));
+      await advanceDanceJobs({
+        userId: session.user.id,
+        jobId: queued.id,
+        reason: 'submit',
+      });
+      return respData(
+        dance.visible(await dance.owned(session.user.id, queued.id))
+      );
     }
     return respData(job);
   } catch (e) {

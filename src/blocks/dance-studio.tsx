@@ -54,6 +54,7 @@ import { readDanceVideoState } from '@/lib/dance-video-state';
 import { m } from '@/paraglide/messages.js';
 import { getLocale, localizeHref } from '@/paraglide/runtime.js';
 import { DancePricing } from '@/blocks/dance-pricing';
+import { DanceSocialExamples } from '@/blocks/dance-social-examples';
 import { DanceClosingCta, DanceTrend } from '@/blocks/dance-trend';
 import { DanceVideo } from '@/components/dance-video';
 import { LocaleSelector } from '@/components/locale-selector';
@@ -383,11 +384,10 @@ export function DanceStudio() {
   }, [hasPhoto, resolution, quote?.cents, quote?.plan?.id]);
   const jobs = useQuery({
     queryKey: ['dance-jobs', session.data?.user.id],
-    queryFn: () => apiGet<Job[]>('/api/dance/'),
+    queryFn: () => apiPost<Job[]>('/api/dance/refresh', {}),
     enabled: !!session.data?.user,
     retry: false,
     refetchInterval: (query) => {
-      if (query.state.status === 'error') return false;
       const active = query.state.data?.filter((job) =>
         ['queued', 'generating', 'reconciling'].includes(job.status)
       );
@@ -762,6 +762,11 @@ export function DanceStudio() {
                 </span>
                 <span>{m['dance.reference_trial_note']()}</span>
               </div>
+              <a className="dance-preview-link" href="#social-examples">
+                <Play size={16} />
+                {m['dance.social.jump']()}
+                <ArrowUpRight size={16} />
+              </a>
             </div>
             <div id="studio" className="dance-input-panel">
               <div className="dance-section-title">
@@ -1056,6 +1061,7 @@ export function DanceStudio() {
             </div>
           </section>
         </div>
+        <DanceSocialExamples />
         {session.data?.user && (
           <details
             id="orders"

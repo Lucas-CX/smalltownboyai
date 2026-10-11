@@ -129,11 +129,19 @@ export async function queueCloudDance(userId: string, jobId: string) {
     throw new Error('Order unavailable');
 }
 
-export async function restoreCloudDance() {
+export async function restoreCloudDance(
+  scope: { userId?: string; jobId?: string } = {}
+) {
   const d1 = danceD1();
   const { results } = await d1
     .prepare(
-      "SELECT id,payment_id,user_id FROM dance_job WHERE status='failed' AND payment_mode IN ('credits-test','credits-live') LIMIT 100"
+      "SELECT id,payment_id,user_id FROM dance_job WHERE status='failed' AND payment_mode IN ('credits-test','credits-live') AND (? IS NULL OR user_id=?) AND (? IS NULL OR id=?) LIMIT 100"
+    )
+    .bind(
+      scope.userId ?? null,
+      scope.userId ?? null,
+      scope.jobId ?? null,
+      scope.jobId ?? null
     )
     .all();
   for (const job of results) {

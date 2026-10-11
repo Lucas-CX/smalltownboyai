@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
-import { cloudDanceEnabled } from '@/core/cloudflare/dance';
+import { cloudBindings, cloudDanceEnabled } from '@/core/cloudflare/dance';
 import { fulfillCloudCheckout } from '@/core/cloudflare/dance-ledger';
 import { db } from '@/core/db';
 import { retryLocalTransaction } from '@/core/db/retry-local-transaction';
@@ -37,6 +37,7 @@ export function danceStripe(key: string) {
 export async function createDanceCheckout(args: {
   key: string;
   signingSecret?: string;
+  kieKey?: string;
   userId: string;
   email: string;
   packId: string;
@@ -51,7 +52,9 @@ export async function createDanceCheckout(args: {
     (!cloudDanceEnabled() ||
       !args.signingSecret?.startsWith('whsec_') ||
       process.env.DANCE_GENERATION_MODE !== 'kie' ||
-      !process.env.KIE_API_KEY)
+      !args.kieKey?.trim() ||
+      !cloudBindings()?.DANCE_FILES ||
+      !cloudBindings()?.IMAGES)
   )
     throw new Error(
       'Payment and generation configuration must be completed before checkout'
@@ -73,7 +76,7 @@ export async function createDanceCheckout(args: {
       amount: pack.cents,
       currency: 'usd',
       productId: pack.id,
-      productName: live ? 'Dance credits' : 'Dance credits (test)',
+      productName: `${pack.videos} × 720p video · 14 seconds${live ? '' : ' (test mode)'}`,
       creditsAmount: pack.credits,
       paymentType: 'one-time',
       paymentProvider: dancePaymentMode(),
@@ -87,6 +90,8 @@ export async function createDanceCheckout(args: {
     .limit(1);
   if (intent.productId !== pack.id) throw new Error('Purchase does not match');
   if (intent.status === 'paid') return { checkoutUrl: '/?resume=1#studio' };
+  if (intent.amount !== pack.cents || intent.creditsAmount !== pack.credits)
+    throw new Error('Pricing changed; start a new purchase');
   // Do not reuse a key after Stripe's minimum 24-hour idempotency retention.
   if (Date.now() - intent.createdAt.getTime() > 23 * 3600_000)
     throw new Error('Checkout expired; start a new purchase');
@@ -105,7 +110,11 @@ export async function createDanceCheckout(args: {
                 currency: 'usd',
                 unit_amount: intent.amount,
                 product_data: {
-                  name: `${intent.creditsAmount} dance credits${live ? '' : ' (test mode)'}`,
+                  name:
+                    intent.productName ||
+                    `${intent.creditsAmount} dance credits`,
+                  description:
+                    '720p · 14 seconds · 9:16 MP4. One-time payment. Return to the studio to generate.',
                 },
               },
             },

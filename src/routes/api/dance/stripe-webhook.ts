@@ -5,6 +5,7 @@ import { danceStripeLive, isDanceStripeKey } from '@/core/payment/dance-mode';
 import { getAllConfigs } from '@/modules/config/service';
 import { acceptPayment, owned, requireSandbox } from '@/modules/dance/service';
 import { fulfillDanceCheckout } from '@/modules/payment/dance-checkout';
+import { advanceDanceJobs } from '@/lib/dance-events.server';
 import { respData, respErr } from '@/lib/resp';
 
 async function POST({ request }: { request: Request }) {
@@ -45,6 +46,11 @@ async function POST({ request }: { request: Request }) {
       'stripe-test',
       checkout.amount_total
     );
+    await advanceDanceJobs({
+      userId: job.userId,
+      jobId: job.id,
+      reason: 'submit',
+    });
     return respData({ received: true });
   } catch {
     return respErr('Webhook verification failed', { status: 400 });

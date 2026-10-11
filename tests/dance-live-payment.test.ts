@@ -107,6 +107,45 @@ test('live payment signatures reject test events, invalid signatures and unpaid 
   );
 });
 
+test('checkout uses the resolved admin Kie key and requires storage and image bindings', async () => {
+  const bindings = (globalThis as any).__CF_ENV__;
+  const previousMode = process.env.DANCE_GENERATION_MODE;
+  const previousKey = process.env.KIE_API_KEY;
+  delete process.env.KIE_API_KEY;
+  process.env.DANCE_GENERATION_MODE = 'kie';
+  const args = {
+    key: 'rk_live_LOCAL_FIXTURE_ONLY',
+    signingSecret: 'whsec_LOCAL_FIXTURE_ONLY',
+    kieKey: 'LOCAL_KIE_FIXTURE',
+    userId: 'a',
+    email: 'a@example.test',
+    packId: 'invalid-pack',
+    requestKey: crypto.randomUUID(),
+    origin: 'https://example.test',
+  };
+  try {
+    await assert.rejects(
+      createDanceCheckout(args),
+      /configuration must be completed/
+    );
+    bindings.DANCE_FILES = {};
+    bindings.IMAGES = {};
+    // Passing preflight reaches pack validation without creating a checkout.
+    await assert.rejects(createDanceCheckout(args), /Invalid purchase/);
+    await assert.rejects(
+      createDanceCheckout({ ...args, kieKey: '' }),
+      /configuration must be completed/
+    );
+  } finally {
+    delete bindings.DANCE_FILES;
+    delete bindings.IMAGES;
+    if (previousMode === undefined) delete process.env.DANCE_GENERATION_MODE;
+    else process.env.DANCE_GENERATION_MODE = previousMode;
+    if (previousKey === undefined) delete process.env.KIE_API_KEY;
+    else process.env.KIE_API_KEY = previousKey;
+  }
+});
+
 test('live grants are idempotent, isolated from test credits, and required before provider submission', async () => {
   await db.execute(
     "INSERT INTO user(id,name,email) VALUES ('a','A','a@example.test')"

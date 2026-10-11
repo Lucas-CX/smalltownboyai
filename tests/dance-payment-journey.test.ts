@@ -103,9 +103,11 @@ test('isolated purchase → signed confirmation → credit grant → generation,
   t.mock.method(prototype, 'retrieve', async (id: string) => sessions.get(id));
   try {
     for (const [userId, resolution, seed, pack, remaining] of [
-      ['buyer480', '480P', 0, 'single', 0],
-      ['buyer720', '720P', 0, 'friends', 250],
-      ['buyer720partial', '720P', 50, 'single', 0],
+      ['buyer480', '480P', 0, 'single', 50],
+      ['buyer720', '720P', 0, 'single', 0],
+      ['buyer720partial', '720P', 50, 'single', 50],
+      ['buyerThree', '720P', 0, 'friends', 300],
+      ['buyerFive', '720P', 0, 'collection', 600],
     ] as const) {
       await sql.execute({
         sql: 'INSERT INTO user(id,name,email) VALUES (?,?,?)',
@@ -117,7 +119,7 @@ test('isolated purchase → signed confirmation → credit grant → generation,
           args: [crypto.randomUUID(), userId, crypto.randomUUID(), seed, seed],
         });
       const offer = dancePurchaseOffer(resolution === '480P' ? 100 : 150, seed);
-      assert.equal(offer.plan?.id, pack);
+      assert.equal(offer.plan?.id, 'single');
       const requestKey = crypto.randomUUID();
       const args = {
         key: 'sk_test_LOCAL_JOURNEY_FIXTURE_ONLY',
@@ -132,6 +134,17 @@ test('isolated purchase → signed confirmation → credit grant → generation,
       await assert.rejects(createDanceCheckout(args));
       assert.equal(await balance(userId), seed);
       failTransport = false;
+      if (userId === 'buyer720') {
+        await sql.execute({
+          sql: 'UPDATE "order" SET amount=990,credits_amount=100 WHERE user_id=?',
+          args: [userId],
+        });
+        await assert.rejects(createDanceCheckout(args), /Pricing changed/);
+        await sql.execute({
+          sql: 'UPDATE "order" SET amount=790,credits_amount=150 WHERE user_id=?',
+          args: [userId],
+        });
+      }
       await createDanceCheckout(args);
       await createDanceCheckout(args);
       const intent = (
@@ -146,8 +159,13 @@ test('isolated purchase → signed confirmation → credit grant → generation,
         'network retry must reuse the saved order'
       );
       assert.equal(intent[0].status, 'pending');
-      assert.equal(Number(intent[0].amount), pack === 'single' ? 990 : 3290);
+      assert.equal(
+        Number(intent[0].amount),
+        { single: 790, friends: 1990, collection: 2990 }[pack]
+      );
+      assert.match(String(intent[0].product_name), /720p video/);
       const session = sessions.get(String(intent[0].payment_session_id))!;
+      assert.equal(session.amount_total, Number(intent[0].amount));
       assert.equal(
         await balance(userId),
         seed,
@@ -175,7 +193,7 @@ test('isolated purchase → signed confirmation → credit grant → generation,
       assert.equal(results.filter(Boolean).length, 1);
       assert.equal(
         await balance(userId),
-        seed + (pack === 'single' ? 100 : 400)
+        seed + { single: 150, friends: 450, collection: 750 }[pack]
       );
       const created = await service.create(
         userId,
@@ -212,16 +230,16 @@ test('isolated purchase → signed confirmation → credit grant → generation,
       );
       await service.erase(userId, created.id);
     }
-    assert.equal(creations, 3);
+    assert.equal(creations, 5);
     const failed = await service.create(
-      'buyer720',
+      'buyerThree',
       crypto.randomUUID(),
       [photo, photo],
       'failure',
       '720P'
     );
-    const before = await balance('buyer720');
-    await queueDanceWithCredits('buyer720', failed.id);
+    const before = await balance('buyerThree');
+    await queueDanceWithCredits('buyerThree', failed.id);
     for (let i = 0; i < 2; i++) {
       await sql.execute({
         sql: 'UPDATE dance_job SET next_run_at=0 WHERE id=?',
@@ -229,24 +247,27 @@ test('isolated purchase → signed confirmation → credit grant → generation,
       });
       await service.tick();
     }
-    assert.equal((await service.owned('buyer720', failed.id)).status, 'failed');
+    assert.equal(
+      (await service.owned('buyerThree', failed.id)).status,
+      'failed'
+    );
     await Promise.all([
       restoreFailedDanceCredits(),
       restoreFailedDanceCredits(),
     ]);
     assert.equal(
-      await balance('buyer720'),
+      await balance('buyerThree'),
       before,
       'confirmed generation failure restores once'
     );
-    await service.erase('buyer720', failed.id);
+    await service.erase('buyerThree', failed.id);
     assert.equal(
       (
         await sql.execute(
           'SELECT count(*) AS total FROM "order" WHERE status=\'paid\''
         )
       ).rows[0].total,
-      3
+      5
     );
   } finally {
     t.mock.restoreAll();

@@ -25,7 +25,7 @@ export function DancePricingFacts() {
           packs: dancePlans
             .map(
               (plan) =>
-                `$${(plan.cents / 100).toFixed(2)} USD / ${plan.credits} ${m['dance.credits']()}`
+                `$${(plan.cents / 100).toFixed(2)} USD / ${m['dance.pack.video_count']({ count: plan.videos })}`
             )
             .join(' · '),
         })}

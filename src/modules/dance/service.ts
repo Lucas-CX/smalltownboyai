@@ -1,4 +1,16 @@
-import { and, count, desc, eq, gt, gte, inArray, lte, ne } from 'drizzle-orm';
+import {
+  and,
+  count,
+  desc,
+  eq,
+  gt,
+  gte,
+  inArray,
+  isNull,
+  lte,
+  ne,
+  or,
+} from 'drizzle-orm';
 
 import {
   downloadDanceResult,
@@ -59,6 +71,7 @@ export function visible(job: DanceJob) {
   const { photos, requestKey, resultKey, ...safe } = job;
   return {
     ...safe,
+    errorCode: safe.errorCode === 'RESULT_PROCESSING' ? null : safe.errorCode,
     expired: job.expiresAt <= now(),
     simulation: job.generationMode !== 'kie',
   };
@@ -180,12 +193,17 @@ export async function requestSupport(userId: string, id: string) {
     .set({ supportRequested: 1 })
     .where(eq(danceJob.id, id));
 }
-export async function erase(userId: string, id: string) {
+export async function erase(userId: string, id: string, expired = false) {
   const job = await owned(userId, id);
   // Revocation precedes physical deletion, so cached links immediately stop working.
   await db()
     .update(danceJob)
-    .set({ status: 'deleted', expiresAt: now() })
+    .set({
+      // Retain automatic delivery failures until the credit restoration pass.
+      // Explicit user deletion remains a revocation, not a refund request.
+      status: expired && job.status === 'failed' ? 'failed' : 'deleted',
+      expiresAt: now(),
+    })
     .where(eq(danceJob.id, id));
   await Promise.all((JSON.parse(job.photos) as string[]).map(deletePrivate));
   if (job.resultKey) await deletePrivate(job.resultKey);
@@ -194,23 +212,76 @@ export async function erase(userId: string, id: string) {
     .set({ photos: '[]', resultKey: null })
     .where(eq(danceJob.id, id));
 }
-// A separate persistent worker runs this; GET requests never advance a task.
-export async function tick(kieKey?: string) {
+// Called by explicit submission, completion callback, or an authenticated refresh.
+// Unscoped execution is retained only for local tests/manual maintenance.
+export type DanceRunScope = {
+  userId?: string;
+  jobId?: string;
+  reason?: 'submit' | 'refresh' | 'callback';
+};
+export async function tick(kieKey?: string, scope: DanceRunScope = {}) {
   requireSandbox();
+  if (process.env.VITE_PREVIEW_ONLY === 'true') return;
+  if (cloudDanceEnabled() && !scope.userId && !scope.jobId)
+    throw new Error('A scoped task is required');
+  const filter = and(
+    scope.userId ? eq(danceJob.userId, scope.userId) : undefined,
+    scope.jobId ? eq(danceJob.id, scope.jobId) : undefined
+  );
+  // Stop delivery at its deadline before cleanup. A late provider result cannot
+  // publish over this state; restoration refunds the recorded debit only once.
+  await db()
+    .update(danceJob)
+    .set({
+      status: 'failed',
+      errorCode: 'DELIVERY_DEADLINE_EXCEEDED',
+      supportRequested: 1,
+    })
+    .where(
+      and(
+        filter,
+        lte(danceJob.expiresAt, now()),
+        inArray(danceJob.status, ['queued', 'generating', 'reconciling']),
+        inArray(danceJob.paymentMode, [
+          'credits-live',
+          'credits-test',
+          'credits-preview',
+        ])
+      )
+    );
   const expired: DanceJob[] = await db()
     .select()
     .from(danceJob)
-    .where(and(lte(danceJob.expiresAt, now()), ne(danceJob.photos, '[]')))
+    .where(
+      and(filter, lte(danceJob.expiresAt, now()), ne(danceJob.photos, '[]'))
+    )
     .limit(100);
   for (const job of expired)
-    if (job.photos !== '[]') await erase(job.userId, job.id);
+    if (job.photos !== '[]') await erase(job.userId, job.id, true);
   const due: DanceJob[] = await db()
     .select()
     .from(danceJob)
     .where(
       and(
+        filter,
         inArray(danceJob.status, ['queued', 'generating', 'reconciling']),
-        lte(danceJob.nextRunAt, now())
+        or(
+          lte(danceJob.nextRunAt, now()),
+          scope.reason === 'submit'
+            ? and(eq(danceJob.status, 'queued'), isNull(danceJob.providerId))
+            : undefined,
+          // Completion notifications bypass ordinary polling backoff, never an
+          // active transfer lease (which is set to 180 seconds).
+          scope.reason === 'callback'
+            ? and(
+                lte(danceJob.nextRunAt, now() + 30),
+                or(
+                  isNull(danceJob.errorCode),
+                  ne(danceJob.errorCode, 'RESULT_PROCESSING')
+                )
+              )
+            : undefined
+        )
       )
     )
     .limit(10);
@@ -219,6 +290,7 @@ export async function tick(kieKey?: string) {
     if (job.generationMode === 'kie') {
       if (!kieKey) continue;
       if (job.status === 'queued' && !job.providerId) {
+        if (scope.reason === 'callback') continue;
         // 'reconciling' without providerId is a durable submission claim; never submit again.
         const claimed = await db()
           .update(danceJob)
@@ -241,7 +313,11 @@ export async function tick(kieKey?: string) {
               nextRunAt: now() + 15,
             })
             .where(
-              and(eq(danceJob.id, job.id), eq(danceJob.status, 'reconciling'))
+              and(
+                eq(danceJob.id, job.id),
+                eq(danceJob.status, 'reconciling'),
+                isNull(danceJob.providerId)
+              )
             );
         } catch (error) {
           // Keep provider payloads and credentials out of logs. These fixed
@@ -267,7 +343,11 @@ export async function tick(kieKey?: string) {
               nextRunAt: now() + 300,
             })
             .where(
-              and(eq(danceJob.id, job.id), eq(danceJob.status, 'reconciling'))
+              and(
+                eq(danceJob.id, job.id),
+                eq(danceJob.status, 'reconciling'),
+                isNull(danceJob.providerId)
+              )
             );
         }
         continue;
@@ -276,7 +356,7 @@ export async function tick(kieKey?: string) {
       // Lease polling/download work; stale workers cannot publish over deletion or expiry.
       const leased = await db()
         .update(danceJob)
-        .set({ nextRunAt: now() + 180 })
+        .set({ nextRunAt: now() + 180, errorCode: 'RESULT_PROCESSING' })
         .where(
           and(
             eq(danceJob.id, job.id),

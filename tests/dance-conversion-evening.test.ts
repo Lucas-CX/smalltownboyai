@@ -65,7 +65,7 @@ test('blocked browser preference storage never breaks rendering or resolution se
     });
     saveDanceResolution('1080P');
     assert.equal(loadDanceResolution(), '1080P');
-    store.setItem('dance-resolution', 'invalid');
+    store.setItem('smalltown-resolution', 'invalid');
     assert.equal(loadDanceResolution(), undefined);
   } finally {
     if (original) Object.defineProperty(globalThis, 'localStorage', original);
@@ -90,7 +90,7 @@ test('expired, malformed and canceled intentions cannot be restored', () => {
   savePurchaseIntent(store, intent, 1000);
   clearPurchaseIntent(store);
   assert.equal(readPurchaseIntent(store, 'a', 2000), undefined);
-  store.setItem('dance-purchase-intent-v1', '{bad');
+  store.setItem('smalltown-purchase-intent-720p-v2', '{bad');
   assert.equal(readPurchaseIntent(store, 'a', 2000), undefined);
   assert.equal(store.map.size, 0);
   assert.throws(() =>

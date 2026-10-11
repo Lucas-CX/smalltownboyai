@@ -403,6 +403,31 @@ test('signed duplicate payment webhook only queues once; invalid signature, unpa
   await service.erase('alice', job.id);
 });
 
+test('expired undelivered paid jobs retain failure state for restoration and remove photos', async () => {
+  for (const status of ['queued', 'generating', 'reconciling']) {
+    const job = await service.create(
+      'alice',
+      crypto.randomUUID(),
+      [image, image],
+      'success'
+    );
+    const stored = await service.owned('alice', job.id);
+    const photos = JSON.parse(stored.photos) as string[];
+    await sql.execute({
+      sql: "UPDATE dance_job SET status=?,payment_mode='credits-live',expires_at=1,generation_mode='kie' WHERE id=?",
+      args: [status, job.id],
+    });
+    await service.tick();
+    const expired = await service.owned('alice', job.id);
+    assert.equal(expired.status, 'failed');
+    assert.equal(expired.errorCode, 'DELIVERY_DEADLINE_EXCEEDED');
+    assert.equal(expired.photos, '[]');
+    for (const photo of photos) await assert.rejects(readPrivate(photo));
+    await service.tick();
+    assert.equal((await service.owned('alice', job.id)).status, 'failed');
+  }
+});
+
 test('default Kie transport does not bind native fetch to the client', async () => {
   const original = globalThis.fetch;
   globalThis.fetch = async function (this: typeof globalThis | undefined) {

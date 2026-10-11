@@ -5,11 +5,7 @@ import {
   danceLanguageAlternates,
   danceLocaleHasIndexablePage,
 } from '@/lib/dance-locales';
-import {
-  DANCE_PRICING_REVIEWED_AT,
-  danceCreditCost,
-  dancePlans,
-} from '@/lib/dance-plans';
+import { DANCE_PRICING_REVIEWED_AT, dancePlans } from '@/lib/dance-plans';
 import {
   danceOrganizationId,
   danceSiteSchemas,
@@ -112,7 +108,7 @@ function dancePricingOffers() {
     priceCurrency: 'USD',
     name: m['dance.pricing_snapshot.offer']({
       name: packNames[plan.id](),
-      credits: plan.credits,
+      count: plan.videos,
     }),
     url: localizeUrl(envConfigs.seo_url + '/pricing').href,
     seller: { '@id': danceOrganizationId() },
@@ -123,10 +119,6 @@ export function dancePricingSeo() {
   const title = m['dance.seo.pricing.title']();
   const description = m['dance.seo.pricing.description']({
     price: (dancePlans[0].cents / 100).toFixed(2),
-    credits: dancePlans[0].credits,
-    cost480: danceCreditCost('480P'),
-    cost720: danceCreditCost('720P'),
-    cost1080: danceCreditCost('1080P'),
   });
   const seo = dancePageSeo('/pricing', title, description);
   if (envConfigs.preview_only === 'true') return seo;

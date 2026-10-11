@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const key = 'dance-purchase-intent-v1';
+const key = 'smalltown-purchase-intent-720p-v2';
 const schema = z
   .object({
     packId: z.enum(['single', 'friends', 'collection']),

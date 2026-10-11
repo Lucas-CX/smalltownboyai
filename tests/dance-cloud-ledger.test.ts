@@ -176,24 +176,21 @@ test('resolution pricing spends across paid grants and restores the exact alloca
   }
 });
 
-test('all proposed packs improve unit contribution and margin at current provider list cost', () => {
-  const oldCents = [890, 2990, 6990];
-  const oldCredits = [100, 400, 1000];
-  for (const [i, plan] of dancePlans.entries()) {
-    for (const [resolution, providerCents] of [
-      ['480P', 80],
-      ['720P', 160],
-      ['1080P', 320],
-    ] as const) {
-      const previousRevenue = (oldCents[i] / oldCredits[i]) * 100;
-      const nextRevenue =
-        (plan.cents / plan.credits) * danceCreditCost(resolution);
-      assert.ok(nextRevenue - providerCents > previousRevenue - providerCents);
-      assert.ok(
-        (nextRevenue - providerCents) / nextRevenue >
-          (previousRevenue - providerCents) / previousRevenue
-      );
-    }
+test('720p packs cover exactly the advertised videos without a leftover balance', () => {
+  assert.deepEqual(
+    dancePlans.map((p) => [p.cents, p.credits, p.videos]),
+    [
+      [790, 150, 1],
+      [1990, 450, 3],
+      [2990, 750, 5],
+    ]
+  );
+  for (const plan of dancePlans) {
+    assert.equal(plan.credits, plan.videos * danceCreditCost('720P'));
+    // Public Wan rate includes 14 seconds of reference + 14 seconds of output.
+    const contribution =
+      plan.cents * (1 - 0.029 - 0.03) - 30 - plan.videos * (224 * 1.15 + 10);
+    assert.ok(contribution / plan.cents > 0.48);
   }
   assert.throws(() => danceCreditCost('1440P'));
 });

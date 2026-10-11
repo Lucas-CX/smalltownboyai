@@ -35,7 +35,10 @@ import '@/styles/globals.css';
 // Public integration IDs live in the DB config (cached for 60s). Fetched via a
 // server function so drizzle/db code never reaches the client bundle.
 const getAnalyticsConfigs = createServerFn().handler(async () => {
-  if (envConfigs.preview_only === 'true')
+  if (
+    envConfigs.preview_only === 'true' &&
+    envConfigs.backoffice_enabled !== 'true'
+  )
     return {
       gaId: '',
       clarityId: '',

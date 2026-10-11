@@ -5,17 +5,17 @@ export const meta = {
   updated_at: '2026-10-11',
 };
 
-Upload 1–3 photos. Choose any role for your photo; the others use default characters.
+Upload two separate photos, one for each role. Both role photos are required.
 
 ## Photos and generated videos
 
 Photos and generated videos are stored privately and accessed through the signed-in owner's account. Uploaded JPEG, PNG and WebP images are decoded and re-encoded to remove EXIF metadata, including location data. Uploads are not automatically published in a public gallery.
 
-For AI generation, your uploaded photos and default character references for all three roles are sent to Kie, the AI processing provider. The demonstrated result uses the Wan video model. The provider processes these images to create the video; generation cannot take place entirely in your browser.
+For AI generation, your two uploaded role photos and the template reference video are sent to Kie, the AI processing provider. The demonstrated result uses the Wan video model. The provider processes these images to create the video; generation cannot take place entirely in your browser.
 
 ## Access and deletion
 
-File access expires 24 hours after order creation. You can use **Delete files** in [My videos](/#studio) to revoke access and remove stored photos and the result sooner. Scheduled cleanup removes expired files when it runs; access expiry and physical deletion are separate events.
+File access expires 24 hours after order creation. You can use **Delete files** in [My videos](/#studio) to revoke access and remove stored photos and the result sooner. Expired files may be removed when their task is checked. Storage lifecycle rules also schedule our private copies for deletion two days after each file is written, including when you do not return. Physical deletion is asynchronous and may happen later than access expiry.
 
 Account details, order records, task status and support records may remain after media deletion. Contact us to request account or record deletion. Deleting files on this site does not establish that copies or logs held by the AI provider have also been deleted. Provider retention is governed separately by its policies; we do not promise an immediate provider-side deletion.
 

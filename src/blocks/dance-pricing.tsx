@@ -32,8 +32,8 @@ const DanceDialog = lazy(() =>
 export function DancePricing({
   standalone = false,
   forGeneration = false,
-  requiredCredits = 100,
-  resolution = '480P',
+  requiredCredits = 150,
+  resolution = '720P',
   onContinue,
   beforeCheckout,
 }: {
@@ -302,7 +302,7 @@ export function DancePricing({
       {selectionError && (
         <p role="alert">{m['dance.purchase.restore_error']()}</p>
       )}
-      {standalone && <DancePricingFacts />}
+
       {forGeneration ? (
         <div className="dance-purchase-focused">
           <p className="dance-purchase-context">
@@ -385,7 +385,7 @@ export function DancePricing({
               .map((plan) => (
                 <div key={plan.id}>
                   <span>
-                    {names[plan.id]()} · {plan.credits} {m['dance.credits']()}
+                    {m['dance.pack.video_count']({ count: plan.videos })}
                   </span>
                   <Button
                     disabled={ctaDisabled}
@@ -414,12 +414,12 @@ export function DancePricing({
               <article
                 key={plan.id}
                 className={
-                  plan.id === 'collection' ? 'dance-pack-best' : undefined
+                  plan.id === 'friends' ? 'dance-pack-best' : undefined
                 }
               >
-                {plan.id === 'collection' && (
+                {plan.id === 'friends' && (
                   <p className="dance-pack-value">
-                    {m['dance.pack.bestvalue']()}
+                    {m['dance.pack.recommended']()}
                   </p>
                 )}
                 {forGeneration &&
@@ -434,25 +434,11 @@ export function DancePricing({
                   ${(plan.cents / 100).toFixed(2)} <small>USD</small>
                 </p>
                 <p>
-                  <strong>{plan.credits}</strong> {m['dance.credits']()}{' '}
+                  <strong>
+                    {m['dance.pack.video_count']({ count: plan.videos })}
+                  </strong>
                 </p>
-                <ul className="dance-pack-breakdown">
-                  {danceResolutions
-                    .filter(
-                      (resolution) =>
-                        plan.credits >= danceCreditCost(resolution)
-                    )
-                    .map((resolution) => (
-                      <li key={resolution}>
-                        {m['dance.pack.capacity']({
-                          count: Math.floor(
-                            plan.credits / danceCreditCost(resolution)
-                          ),
-                          resolution: resolution.toLowerCase(),
-                        })}
-                      </li>
-                    ))}
-                </ul>
+                <p className="dance-muted">{m['dance.pack.format']()}</p>
                 <p className="dance-muted">
                   {m['dance.purchase.unitprice']({
                     price: (Math.round(plan.cents / plan.videos) / 100).toFixed(
@@ -509,6 +495,7 @@ export function DancePricing({
           <p className="dance-muted">{m['dance.pack.capacitynote']()}</p>
         </>
       )}
+      {standalone && <DancePricingFacts />}
       {standalone && (
         <div className="mt-6 max-w-3xl space-y-3 text-sm leading-relaxed">
           <p className="dance-muted">
@@ -579,9 +566,10 @@ export function DancePricing({
               </p>
             )}
             <p>
-              {pack?.credits} {m['dance.credits']()} · $
+              {m['dance.pack.video_count']({ count: pack.videos })} · $
               {((pack?.cents || 0) / 100).toFixed(2)} USD
             </p>
+            <p className="dance-muted">{m['dance.pack.format']()}</p>
             {purchase.isError && <p role="alert">{m['dance.actionerror']()}</p>}
             {settings.isError && (
               <p role="alert">

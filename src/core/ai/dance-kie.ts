@@ -126,12 +126,13 @@ export class KieDanceClient {
   async submit(
     images: string[],
     reference: DanceReference,
-    resolution: DanceResolution = '720P'
+    resolution: DanceResolution = '720P',
+    callbackUrl?: string
   ) {
-    const data = await this.call(
-      'jobs/createTask',
-      dancePayload(images, reference, resolution)
-    );
+    const data = await this.call('jobs/createTask', {
+      ...dancePayload(images, reference, resolution),
+      ...(callbackUrl ? { callBackUrl: callbackUrl } : {}),
+    });
     if (typeof data?.taskId !== 'string')
       throw new Error('Submission outcome unknown; reconcile in Kie Logs');
     return data.taskId as string;
@@ -151,7 +152,20 @@ export class KieDanceClient {
       data.state === 'success'
         ? JSON.parse(data.resultJson || '{}').resultUrls
         : [];
+    let parameters: any = {};
+    try {
+      parameters =
+        typeof data.param === 'string'
+          ? JSON.parse(data.param)
+          : data.param || {};
+    } catch {}
     return {
+      taskId: typeof data.taskId === 'string' ? data.taskId : null,
+      model: typeof data.model === 'string' ? data.model : null,
+      callbackUrl:
+        typeof parameters.callBackUrl === 'string'
+          ? parameters.callBackUrl
+          : null,
       state: data.state as string,
       urls: Array.isArray(urls) ? (urls as string[]) : [],
       errorCode: data.failCode ? String(data.failCode).slice(0, 100) : null,
