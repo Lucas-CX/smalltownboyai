@@ -40,7 +40,11 @@ export const Route = createFileRoute('/robots.txt')({
           '',
         ].join('\n');
         return new Response(body, {
-          headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+          headers: {
+            'Content-Type': 'text/plain; charset=utf-8',
+            // Keep preview crawl restrictions from lingering after launch.
+            'Cache-Control': 'public, max-age=300, must-revalidate',
+          },
         });
       },
     },
