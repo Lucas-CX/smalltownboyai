@@ -1,7 +1,7 @@
 import type { DanceResolution } from './dance-settings';
 
 // Update when the public pricing explanation is reviewed, not on every build.
-export const DANCE_PRICING_REVIEWED_AT = '2026-10-11';
+export const DANCE_PRICING_REVIEWED_AT = '2026-10-12';
 
 export const DANCE_RESOLUTION_CREDITS = {
   '480P': 100,

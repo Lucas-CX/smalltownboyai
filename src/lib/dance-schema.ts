@@ -26,6 +26,8 @@ export function danceSiteSchemas() {
       contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'customer support',
+        email: 'support@smalltownboyai.video',
+        availableLanguage: ['en', 'zh'],
         url: origin + '/contact',
       },
       // Do not invent legal entity details, reviews or social profiles.

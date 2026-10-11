@@ -1447,6 +1447,7 @@ export function DanceStudio() {
           {envConfigs.app_name} / {t('aicontent')}
         </span>
         <div>
+          <Link href="/about">{m['dance.about']()}</Link>
           <Link href="/privacy-policy">{t('privacy')}</Link>
           <Link href="/terms-of-service">{t('terms')}</Link>
           <Link href="/refund-policy">{t('refunds')}</Link>

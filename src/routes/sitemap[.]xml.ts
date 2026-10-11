@@ -7,7 +7,20 @@ import {
   danceLocaleHasIndexablePage,
   danceMarketLocales,
 } from '@/lib/dance-locales';
+import { DANCE_PRICING_REVIEWED_AT } from '@/lib/dance-plans';
 import { localizeUrl } from '@/paraglide/runtime.js';
+
+const pageMetadata = import.meta.glob<{ updated_at: string }>(
+  '/src/content/pages/*.mdx',
+  { eager: true, import: 'meta' }
+);
+
+function lastModified(path: string, locale: string) {
+  // Content maintenance dates, never the request or build time.
+  if (path === '/') return '2026-10-12';
+  if (path === '/pricing') return DANCE_PRICING_REVIEWED_AT;
+  return pageMetadata[`/src/content/pages${path}.${locale}.mdx`]?.updated_at;
+}
 
 export const Route = createFileRoute('/sitemap.xml')({
   server: {
@@ -34,6 +47,9 @@ export const Route = createFileRoute('/sitemap.xml')({
                     locale,
                   }).href +
                   '</loc>' +
+                  (lastModified(path, locale)
+                    ? `<lastmod>${lastModified(path, locale)}</lastmod>`
+                    : '') +
                   danceLanguageAlternates(
                     envConfigs.seo_url.replace(/\/$/, ''),
                     path

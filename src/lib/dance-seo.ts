@@ -46,7 +46,22 @@ export function dancePageSeo(
       { property: 'og:title', content: title },
       { property: 'og:description', content: description },
       { property: 'og:url', content: canonical },
-      { name: 'twitter:card', content: 'summary' },
+      { property: 'og:site_name', content: envConfigs.app_brand },
+      {
+        property: 'og:image',
+        content: origin + '/media/smalltown-duo-v1/poster.webp',
+      },
+      {
+        property: 'og:image:alt',
+        content: title,
+      },
+      { name: 'twitter:card', content: 'summary_large_image' },
+      { name: 'twitter:title', content: title },
+      { name: 'twitter:description', content: description },
+      {
+        name: 'twitter:image',
+        content: origin + '/media/smalltown-duo-v1/poster.webp',
+      },
     ],
     links: [
       { rel: 'canonical', href: canonical },

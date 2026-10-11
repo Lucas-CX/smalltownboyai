@@ -36,6 +36,20 @@ for (const locale of ['en', 'zh']) {
     const html = await response.text();
     assert.doesNotMatch(html, oldContent, url);
     assert.match(html, /rel="canonical"/, url);
+    assert.match(
+      html,
+      /property="og:image" content="https?:[^\"]+poster.webp"/,
+      url
+    );
+    assert.match(html, /name="twitter:image"/, url);
+    assert.doesNotMatch(
+      html,
+      /ShipAny|development sample|开发样例|demo or test checkout|演示或测试结账/,
+      url
+    );
+    if (path === '/contact') {
+      assert.match(html, /href="mailto:support@smalltownboyai.video"/, url);
+    }
     assert.equal(/name="robots" content="noindex/.test(html), !indexable, url);
     if (previewOnly) {
       assert.doesNotMatch(
@@ -59,6 +73,16 @@ for (const locale of ['en', 'zh']) {
     );
     if (path === '/') {
       assert.equal([...html.matchAll(/<h1\b/g)].length, 1, 'One homepage H1');
+      assert.match(
+        html,
+        /href="(?:\/zh)?\/about"/,
+        'About is linked from homepage'
+      );
+      assert.match(
+        html,
+        locale === 'zh' ? />关于我们<\/a>/ : />About<\/a>/,
+        'About link uses the active locale'
+      );
       assert.match(html, /<title>[^<]*Smalltown Boy/, 'Trend-specific title');
       assert.match(
         html,
