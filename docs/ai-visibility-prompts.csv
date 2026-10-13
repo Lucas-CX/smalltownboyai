@@ -1,0 +1,21 @@
+id,language,intent,prompt,product_fit
+01-en,en,make,How do I make a Smalltown Boy AI dance video from two separate photos?,target
+01-zh,zh,make,怎么用两张独立照片制作 Smalltown Boy AI 舞蹈视频？,target
+02-en,en,identify,What is the video where two cats scream at the camera and then dance together?,target
+02-zh,zh,identify,两只猫对着镜头尖叫然后一起跳舞的视频是什么？,target
+03-en,en,pets,Where can I make the Smalltown Boy dance with photos of my cat and dog?,target
+03-zh,zh,pets,在哪里能用我家猫和狗的照片制作 Smalltown Boy 舞蹈？,target
+04-en,en,no_prompt,Which Smalltown Boy dance tools work without writing a prompt or uploading a reference video?,target
+04-zh,zh,no_prompt,有哪些 Smalltown Boy 工具不用写提示词或上传参考视频？,target
+05-en,en,one_time,Recommend a Smalltown Boy AI video tool with a one-time payment rather than a subscription.,target
+05-zh,zh,one_time,推荐一个一次性付费而非订阅的 Smalltown Boy AI 视频工具。,target
+06-en,en,budget,Can I make one 720p Smalltown Boy dance video for under 10 US dollars?,target
+06-zh,zh,budget,10 美元以内能制作一次 720p 的 Smalltown Boy 视频吗？,target
+07-en,en,photos,What photos should I use for a Smalltown Boy AI dance of me and a friend?,target
+07-zh,zh,photos,用我和朋友的照片做 Smalltown Boy 舞蹈，应该选什么照片？,target
+08-en,en,evidence,Which Smalltown Boy AI tools show both input photos and a full output sample before payment?,target
+08-zh,zh,evidence,哪些 Smalltown Boy AI 工具能在付款前看输入照片和完整成品？,target
+09-en,en,music,Which Smalltown Boy AI tools include the original song and a full 22-second video?,mismatch_control
+09-zh,zh,music,哪些 Smalltown Boy AI 工具包含原曲和完整 22 秒视频？,mismatch_control
+10-en,en,free,Is there a free Smalltown Boy AI generator with no watermark?,mismatch_control
+10-zh,zh,free,有没有免费且无水印的 Smalltown Boy AI 生成器？,mismatch_control

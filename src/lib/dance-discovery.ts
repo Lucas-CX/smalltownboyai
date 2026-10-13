@@ -1,18 +1,11 @@
 import { envConfigs } from '@/config';
 import { danceFaq } from '@/lib/dance-faq';
 import { DANCE_RESOLUTION_CREDITS, dancePlans } from '@/lib/dance-plans';
+import { dancePublicPaths } from '@/lib/dance-public-pages';
 import { m } from '@/paraglide/messages.js';
 import { locales } from '@/paraglide/runtime.js';
 
-export const dancePublicPaths = [
-  '/',
-  '/pricing',
-  '/about',
-  '/privacy-policy',
-  '/terms-of-service',
-  '/refund-policy',
-  '/contact',
-];
+export { dancePublicPaths } from '@/lib/dance-public-pages';
 export const danceChineseGuidePaths: string[] = [];
 export function danceDiscoveryText(full = false) {
   const origin = envConfigs.seo_url.replace(/\/$/, '');
@@ -22,7 +15,7 @@ export function danceDiscoveryText(full = false) {
     '',
     m['dance.seo.description']({}, locale),
     '',
-    '## Product and policies',
+    '## Product, guides and policies',
     '',
     ...dancePublicPaths.map(
       (path) =>
@@ -51,7 +44,7 @@ export function danceDiscoveryText(full = false) {
         ([resolution, credits]) =>
           `- ${resolution.toLowerCase()}: ${credits} credits per video.`
       ),
-      'Videos use a fixed 14-second, vertical 9:16 template. Download within 24 hours of order creation.',
+      'Videos use a fixed 14-second, vertical 9:16 template. Download within 24 hours of video task creation.',
       'The original song was added to the sample after generation. Delivery uses generated audio; the original recording is not guaranteed.',
       '',
       '## Support',

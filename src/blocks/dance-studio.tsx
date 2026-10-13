@@ -53,6 +53,7 @@ import {
 import { readDanceVideoState } from '@/lib/dance-video-state';
 import { m } from '@/paraglide/messages.js';
 import { getLocale, localizeHref } from '@/paraglide/runtime.js';
+import { DanceGuides } from '@/blocks/dance-guides';
 import { DancePricing } from '@/blocks/dance-pricing';
 import { DanceSocialExamples } from '@/blocks/dance-social-examples';
 import { DanceClosingCta, DanceTrend } from '@/blocks/dance-trend';
@@ -91,6 +92,7 @@ type Job = {
   providerId: string | null;
   providerCostCents: number | null;
   createdAt: number;
+  expiresAt?: number;
 };
 const labels: Record<string, () => string> = {
   actionerror: m['dance.actionerror'],
@@ -472,7 +474,11 @@ export function DanceStudio() {
         reason: danceErrorReason(e),
       });
       if (e.message === 'INSUFFICIENT_CREDITS') setPurchaseOpen(true);
-      else setError(t('createerror'));
+      else {
+        setError(t('createerror'));
+        setShowOrders(true);
+        refresh();
+      }
     },
   });
   const action = useMutation({
@@ -557,7 +563,10 @@ export function DanceStudio() {
         });
       if (error instanceof Error && error.message === 'Sign in to continue')
         setLoginOpen(true);
-      else setError(saved ? t('createerror') : m['dance.drafterror']());
+      else if (!submitted)
+        setError(
+          saved ? m['dance.creditscheckerror']() : m['dance.drafterror']()
+        );
     } finally {
       submitLock.current = false;
       setPreparing(false);
@@ -1096,15 +1105,17 @@ export function DanceStudio() {
                   <article className="dance-order" key={job.id}>
                     <div className="dance-result-meta">
                       <span className="dance-chip">
-                        {job.expired || job.status === 'deleted'
-                          ? t('expired')
-                          : !job.simulation && job.status === 'succeeded'
-                            ? m['dance.resultready']()
-                            : t(`status.${job.status}`)}
+                        {job.status === 'deleted'
+                          ? m['dance.deleted']()
+                          : job.expired
+                            ? t('expired')
+                            : !job.simulation && job.status === 'succeeded'
+                              ? m['dance.resultready']()
+                              : t(`status.${job.status}`)}
                       </span>
                       <p className="dance-order-date">
                         {new Date(job.createdAt * 1000).toLocaleString(
-                          'en-US',
+                          getLocale() === 'zh' ? 'zh-CN' : 'en-US',
                           {
                             month: 'short',
                             day: 'numeric',
@@ -1115,6 +1126,25 @@ export function DanceStudio() {
                       </p>
                       {!job.expired &&
                         job.status !== 'deleted' &&
+                        typeof job.expiresAt === 'number' && (
+                          <p className="dance-order-date">
+                            {m['dance.download_deadline']({
+                              date: new Date(
+                                job.expiresAt * 1000
+                              ).toLocaleString(
+                                getLocale() === 'zh' ? 'zh-CN' : 'en-US',
+                                {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                }
+                              ),
+                            })}
+                          </p>
+                        )}
+                      {!job.expired &&
+                        job.status !== 'deleted' &&
                         job.status === 'succeeded' && (
                           <p className="dance-result-caption">
                             {job.simulation
@@ -1123,7 +1153,14 @@ export function DanceStudio() {
                           </p>
                         )}
                       {(job.expired || job.status === 'deleted') && (
-                        <p>{t('expiredinfo')}</p>
+                        <p>
+                          {job.status === 'deleted'
+                            ? m['dance.deletedinfo']()
+                            : t('expiredinfo')}{' '}
+                          <Link href="/contact">
+                            {m['settings.nav.tickets']()}
+                          </Link>
+                        </p>
                       )}
                       {['queued', 'generating', 'reconciling'].includes(
                         job.status
@@ -1330,6 +1367,7 @@ export function DanceStudio() {
             </details>
           ))}
         </section>
+        <DanceGuides />
         <DanceClosingCta />
       </main>
       <Suspense fallback={null}>
@@ -1448,6 +1486,7 @@ export function DanceStudio() {
         </span>
         <div>
           <Link href="/about">{m['dance.about']()}</Link>
+          <Link href="/guides">{m['dance.guides.all']()}</Link>
           <Link href="/privacy-policy">{t('privacy')}</Link>
           <Link href="/terms-of-service">{t('terms')}</Link>
           <Link href="/refund-policy">{t('refunds')}</Link>

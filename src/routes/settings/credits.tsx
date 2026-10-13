@@ -8,6 +8,7 @@ import { Link } from '@/core/i18n/navigation';
 import { apiGet, type PageResult } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
+import { getLocale } from '@/paraglide/runtime.js';
 import { DataTable, type Column } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { buttonVariants } from '@/components/ui/button';
@@ -84,7 +85,11 @@ function CreditsPage() {
         <Badge
           variant={r.transactionType === 'consume' ? 'secondary' : 'default'}
         >
-          {r.transactionType}
+          {r.transactionType === 'grant'
+            ? m['settings.credits.type_grant']()
+            : r.transactionType === 'consume'
+              ? m['settings.credits.type_consume']()
+              : m['settings.credits.type_unknown']()}
         </Badge>
       ),
     },
@@ -119,7 +124,9 @@ function CreditsPage() {
       header: m['settings.credits.expires_at'](),
       cell: (r) => (
         <span className="text-muted-foreground text-sm">
-          {r.expiresAt ? new Date(r.expiresAt).toLocaleDateString() : '—'}
+          {r.expiresAt
+            ? new Date(r.expiresAt).toLocaleDateString(getLocale())
+            : '—'}
         </span>
       ),
     },
@@ -127,7 +134,7 @@ function CreditsPage() {
       header: m['settings.credits.date'](),
       cell: (r) => (
         <span className="text-muted-foreground text-sm">
-          {new Date(r.createdAt).toLocaleDateString()}
+          {new Date(r.createdAt).toLocaleDateString(getLocale())}
         </span>
       ),
     },

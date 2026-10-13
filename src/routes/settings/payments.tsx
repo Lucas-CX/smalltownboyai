@@ -7,6 +7,7 @@ import { tDynamic } from '@/core/i18n/dynamic';
 import { apiGet, type PageResult } from '@/lib/api-client';
 import { cn } from '@/lib/utils';
 import { m } from '@/paraglide/messages.js';
+import { getLocale } from '@/paraglide/runtime.js';
 import { DataTable, type Column } from '@/components/data-table';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
@@ -26,14 +27,14 @@ type Order = {
   createdAt: string;
 };
 
-const TABS = ['all', 'one-time', 'subscription', 'renew'] as const;
+const TABS = ['all', 'one-time'] as const;
 type Tab = (typeof TABS)[number];
 
 const PAGE_SIZE = 20;
 
 function formatAmount(amount: number, currency: string) {
   const normalized = (currency || 'usd').toUpperCase();
-  return new Intl.NumberFormat(undefined, {
+  return new Intl.NumberFormat(getLocale(), {
     style: 'currency',
     currency: normalized,
   }).format(amount / 100);
@@ -46,6 +47,28 @@ function statusVariant(
   if (s === 'paid' || s === 'succeeded' || s === 'active') return 'default';
   if (s === 'failed' || s === 'canceled') return 'destructive';
   return 'secondary';
+}
+
+function paymentStatusLabel(status: string) {
+  switch (status.toLowerCase()) {
+    case 'paid':
+    case 'succeeded':
+      return m['settings.payments.status_paid']();
+    case 'pending':
+    case 'processing':
+      return m['settings.payments.status_pending']();
+    case 'created':
+      return m['settings.payments.status_created']();
+    case 'failed':
+      return m['settings.payments.status_failed']();
+    case 'canceled':
+    case 'cancelled':
+      return m['settings.payments.status_canceled']();
+    case 'refunded':
+      return m['settings.payments.status_refunded']();
+    default:
+      return m['settings.payments.status_unknown']();
+  }
 }
 
 function PaymentsPage() {
@@ -98,11 +121,22 @@ function PaymentsPage() {
     },
     {
       header: m['settings.payments.status'](),
-      cell: (o) => <Badge variant={statusVariant(o.status)}>{o.status}</Badge>,
+      cell: (o) => (
+        <Badge variant={statusVariant(o.status)}>
+          {paymentStatusLabel(o.status)}
+        </Badge>
+      ),
     },
     {
       header: m['settings.payments.type'](),
-      cell: (o) => o.paymentType || '—',
+      cell: (o) =>
+        o.paymentType === 'one-time'
+          ? m['settings.payments.tab_one_time']()
+          : o.paymentType === 'subscription'
+            ? m['settings.payments.tab_subscription']()
+            : o.paymentType === 'renew'
+              ? m['settings.payments.tab_renew']()
+              : '—',
     },
     {
       header: m['settings.payments.provider'](),
@@ -112,7 +146,7 @@ function PaymentsPage() {
       header: m['settings.payments.date'](),
       cell: (o) => (
         <span className="text-muted-foreground text-sm">
-          {new Date(o.paidAt || o.createdAt).toLocaleDateString()}
+          {new Date(o.paidAt || o.createdAt).toLocaleDateString(getLocale())}
         </span>
       ),
     },

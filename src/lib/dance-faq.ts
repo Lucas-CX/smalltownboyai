@@ -1,4 +1,5 @@
 import { envConfigs } from '@/config';
+import { DANCE_CREDITS_PER_VIDEO, dancePlans } from '@/lib/dance-plans';
 import { m } from '@/paraglide/messages.js';
 
 // One source for the visible homepage FAQ, JSON-LD and llms-full.txt.
@@ -13,7 +14,17 @@ export const danceFaq = [
   [m['dance.q2'], m['dance.a2']],
   [m['dance.q10'], m['dance.a10']],
   [m['dance.q11'], m['dance.a11']],
-  [m['dance.q12'], m['dance.a12']],
+  [
+    m['dance.q12'],
+    (_inputs = {}, options?: Parameters<(typeof m)['dance.q12']>[1]) =>
+      m['dance.a12'](
+        {
+          price: (dancePlans[0].cents / 100).toFixed(2),
+          credits: DANCE_CREDITS_PER_VIDEO,
+        },
+        options
+      ),
+  ],
   [m['dance.q13'], m['dance.a13']],
   [m['dance.q7'], m['dance.a7']],
   [m['dance.q17'], m['dance.a17']],

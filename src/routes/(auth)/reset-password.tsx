@@ -19,17 +19,18 @@ import {
 } from '@/components/ui/card';
 import { Field, FieldDescription, FieldGroup } from '@/components/ui/field';
 
-const resetSchema = z
-  .object({
-    password: z.string().min(8),
-    confirmPassword: z.string().min(8),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    path: ['confirmPassword'],
-    message: m['common.sign.password_mismatch'](),
-  });
-
 function ResetPasswordPage() {
+  const resetSchema = z
+    .object({
+      password: z.string().min(8, m['common.sign.password_min_length']()),
+      confirmPassword: z
+        .string()
+        .min(8, m['common.sign.password_min_length']()),
+    })
+    .refine((d) => d.password === d.confirmPassword, {
+      path: ['confirmPassword'],
+      message: m['common.sign.password_mismatch'](),
+    });
   const router = useRouter();
   const [token, setToken] = useState<string | null>(null);
   const [tokenChecked, setTokenChecked] = useState(false);
@@ -61,13 +62,13 @@ function ResetPasswordPage() {
           token,
         });
         if (result.error) {
-          setError(result.error.message || 'Reset failed');
+          setError(m['common.sign.request_failed']());
         } else {
           setSuccess(true);
           setTimeout(() => router.push('/sign-in' + continuation), 1500);
         }
       } catch (err: any) {
-        setError(err.message || 'Reset failed');
+        setError(m['common.sign.request_failed']());
       }
     },
   });

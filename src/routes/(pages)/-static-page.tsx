@@ -1,6 +1,12 @@
 import { lazy, Suspense, type ComponentType } from 'react';
 import { notFound, useLoaderData } from '@tanstack/react-router';
 
+import { danceGuidePaths } from '@/lib/dance-public-pages';
+import {
+  danceOrganizationId,
+  danceWebsiteId,
+  jsonLd,
+} from '@/lib/dance-schema';
 import { dancePageSeo } from '@/lib/dance-seo';
 import { m } from '@/paraglide/messages.js';
 import { baseLocale, getLocale } from '@/paraglide/runtime.js';
@@ -31,15 +37,34 @@ export function staticPageRouteOptions(slug: string) {
       if (!key) throw notFound();
       return { meta: (await pages[key]()).meta, key, locale };
     },
-    head: ({ loaderData }: { loaderData?: LoaderData }) =>
-      loaderData
-        ? dancePageSeo(
-            '/' + slug,
-            loaderData.meta.title,
-            loaderData.meta.description,
-            loaderData.locale
-          )
-        : {},
+    head: ({ loaderData }: { loaderData?: LoaderData }) => {
+      if (!loaderData) return {};
+      const seo = dancePageSeo(
+        '/' + slug,
+        loaderData.meta.title,
+        loaderData.meta.description,
+        loaderData.locale
+      );
+      if (!danceGuidePaths.some((path) => path === '/' + slug)) return seo;
+      return {
+        ...seo,
+        scripts: [
+          ...seo.scripts,
+          jsonLd({
+            '@context': 'https://schema.org',
+            '@type': slug === 'guides' ? 'CollectionPage' : 'Article',
+            '@id': seo.links[0].href + '#content',
+            url: seo.links[0].href,
+            headline: loaderData.meta.title,
+            description: loaderData.meta.description,
+            inLanguage: loaderData.locale,
+            dateModified: loaderData.meta.updated_at,
+            publisher: { '@id': danceOrganizationId() },
+            isPartOf: { '@id': danceWebsiteId() },
+          }),
+        ],
+      };
+    },
     component: StaticPage,
   };
 }

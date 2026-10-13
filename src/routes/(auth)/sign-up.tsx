@@ -26,20 +26,21 @@ import {
 
 import '@/styles/dance.css';
 
-const signUpSchema = z
-  .object({
-    name: z.string().min(1),
-    email: z.string().email(m['common.sign.email_placeholder']()),
-    password: z.string().min(8),
-    confirmPassword: z.string().min(8),
-    inviteCode: z.string(),
-  })
-  .refine((d) => d.password === d.confirmPassword, {
-    path: ['confirmPassword'],
-    message: m['common.sign.password_mismatch'](),
-  });
-
 function SignUpPage() {
+  const signUpSchema = z
+    .object({
+      name: z.string().min(1),
+      email: z.string().email(m['common.sign.email_placeholder']()),
+      password: z.string().min(8, m['common.sign.password_min_length']()),
+      confirmPassword: z
+        .string()
+        .min(8, m['common.sign.password_min_length']()),
+      inviteCode: z.string(),
+    })
+    .refine((d) => d.password === d.confirmPassword, {
+      path: ['confirmPassword'],
+      message: m['common.sign.password_mismatch'](),
+    });
   const router = useRouter();
   const { data: session, isPending: sessionPending } = useSession();
   // Set right before we navigate so the already-signed-in effect doesn't also fire.
@@ -146,7 +147,7 @@ function SignUpPage() {
             stage: 'email',
             reason: 'request_failed',
           });
-          setError(result.error.message || 'Sign up failed');
+          setError(m['common.sign.request_failed']());
           return;
         }
 
@@ -184,7 +185,7 @@ function SignUpPage() {
           stage: 'email',
           reason: 'request_failed',
         });
-        setError(err.message || 'Sign up failed');
+        setError(m['common.sign.request_failed']());
       }
     },
   });

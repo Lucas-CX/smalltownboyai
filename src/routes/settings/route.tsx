@@ -1,9 +1,7 @@
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 import {
   Coins,
-  CreditCard,
   Home,
-  Key,
   LayoutDashboard,
   LifeBuoy,
   Receipt,
@@ -29,12 +27,6 @@ function SettingsLayout() {
       group,
     },
     {
-      href: '/settings/billing',
-      label: m['settings.nav.billing'](),
-      icon: CreditCard,
-      group,
-    },
-    {
       href: '/settings/payments',
       label: m['settings.nav.payments'](),
       icon: Receipt,
@@ -44,12 +36,6 @@ function SettingsLayout() {
       href: '/settings/credits',
       label: m['settings.nav.credits'](),
       icon: Coins,
-      group,
-    },
-    {
-      href: '/settings/apikeys',
-      label: m['settings.nav.apikeys'](),
-      icon: Key,
       group,
     },
     {

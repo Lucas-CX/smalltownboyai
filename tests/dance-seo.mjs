@@ -13,7 +13,14 @@ const paths = [
   '/privacy-policy',
   '/terms-of-service',
   '/refund-policy',
+  '/guides',
+  '/how-to-make-smalltown-boy-ai-video',
+  '/smalltown-boy-cat-dance',
+  '/smalltown-boy-photo-guide',
+  '/smalltown-boy-video-options',
+  '/smalltown-boy-sample',
 ];
+const guidePaths = paths.slice(paths.indexOf('/guides'));
 function decodeHtml(text) {
   return text
     .replace(/&#x([0-9a-f]+);/gi, (_, code) =>
@@ -51,6 +58,48 @@ for (const locale of ['en', 'zh']) {
       assert.match(html, /href="mailto:support@smalltownboyai.video"/, url);
     }
     assert.equal(/name="robots" content="noindex/.test(html), !indexable, url);
+    if (guidePaths.includes(path)) {
+      assert.equal([...html.matchAll(/<h1\b/g)].length, 1, url + ': one H1');
+      const canonical = html.match(/rel="canonical" href="([^"]+)"/)?.[1];
+      assert.equal(
+        new URL(canonical).pathname,
+        prefix + path,
+        url + ': canonical locale'
+      );
+      for (const language of ['en', 'zh', 'x-default'])
+        assert.ok(
+          html.includes(`hrefLang="${language}"`) ||
+            html.includes(`hreflang="${language}"`),
+          url + ': language alternate'
+        );
+      assert.match(
+        html,
+        path === '/guides' ? /"@type":"CollectionPage"/ : /"@type":"Article"/,
+        url
+      );
+      assert.match(html, /"dateModified":"2026-10-13"/, url);
+      assert.ok(discovery.includes(path), url + ': AI discovery');
+      if (path === '/guides') {
+        for (const guide of guidePaths.filter((item) => item !== '/guides'))
+          assert.ok(
+            html.includes(`href="${prefix + guide}"`),
+            url + ': localized guide link'
+          );
+      }
+      if (path === '/smalltown-boy-sample') {
+        for (const asset of ['input-1.webp', 'input-2.webp', 'example.mp4'])
+          assert.ok(
+            html.includes('/media/smalltown-duo-v1/' + asset),
+            url + ': sample evidence'
+          );
+        assert.match(html, /preload="none"/, url + ': no eager video download');
+        assert.match(
+          html,
+          locale === 'en' ? /added after generation/ : /生成后添加/,
+          url + ': audio disclosure'
+        );
+      }
+    }
     if (previewOnly) {
       assert.doesNotMatch(
         html,
@@ -77,6 +126,10 @@ for (const locale of ['en', 'zh']) {
         html,
         /href="(?:\/zh)?\/about"/,
         'About is linked from homepage'
+      );
+      assert.ok(
+        html.includes(`href="${prefix}/guides"`),
+        'Guides linked from homepage'
       );
       assert.match(
         html,
@@ -143,7 +196,6 @@ for (const path of [
   '/gas-station-dance-photo-guide',
   '/gas-station-dance-prompt',
   '/best-gas-station-dance-ai-generator',
-  '/guides',
 ]) {
   for (const prefix of ['', '/zh'])
     assert.equal(
@@ -155,7 +207,18 @@ for (const path of [
 for (const path of ['/sitemap.xml', '/llms.txt', '/llms-full.txt']) {
   const response = await fetch(base + path);
   assert.equal(response.status, 200, path);
-  assert.doesNotMatch(await response.text(), oldContent, path);
+  const body = await response.text();
+  assert.doesNotMatch(body, oldContent, path);
+  if (path === '/sitemap.xml' && indexable) {
+    const urls = [...body.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
+      (match) => new URL(match[1]).pathname
+    );
+    assert.equal(urls.length, paths.length * 2, 'Both locales in sitemap');
+    assert.equal(new Set(urls).size, urls.length, 'No duplicate sitemap URLs');
+    for (const guide of guidePaths)
+      for (const prefix of ['', '/zh'])
+        assert.ok(urls.includes(prefix + guide), 'Guide discoverability');
+  }
 }
 console.log(
   'Template pages, metadata, discovery and retired-route checks passed.'
