@@ -23,6 +23,7 @@ import {
   trackDanceOnce,
 } from '@/lib/dance-analytics';
 import { castPreview } from '@/lib/dance-cast';
+import { runtimeDiagnostic } from '@/lib/dance-diagnostics';
 import {
   clearDanceDraft,
   loadDanceDraft,
@@ -749,7 +750,20 @@ export function DanceStudio() {
                       trackDance('dance_video_failed', {
                         stage: 'example',
                         reason,
+                        browser_family: runtimeDiagnostic(
+                          undefined,
+                          undefined,
+                          undefined,
+                          window.location.origin,
+                          navigator.userAgent
+                        ).browser_family,
                       })
+                    }
+                    onRetry={() =>
+                      trackDance('dance_video_retry', { stage: 'example' })
+                    }
+                    onRecovered={() =>
+                      trackDance('dance_video_recovered', { stage: 'example' })
                     }
                     className="dance-reference-video"
                     preload="none"

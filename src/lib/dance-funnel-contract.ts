@@ -108,6 +108,21 @@ export const funnelReasons = [
 export const DANCE_CONVERSION_VERSION = 'conversion_20261010_quote' as const;
 export const funnelParamsSchema = z
   .object({
+    utm_source: z
+      .string()
+      .max(80)
+      .regex(/^[a-z0-9_-]+$/)
+      .optional(),
+    utm_medium: z
+      .string()
+      .max(80)
+      .regex(/^[a-z0-9_-]+$/)
+      .optional(),
+    utm_campaign: z
+      .string()
+      .max(80)
+      .regex(/^[a-z0-9_-]+$/)
+      .optional(),
     audience_version: z.literal('market_20261011').optional(),
     browser_language: z
       .string()

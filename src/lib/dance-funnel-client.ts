@@ -1,5 +1,7 @@
+import { analyticsDiagnostic } from '@/lib/analytics-policy';
 import { apiPost } from '@/lib/api-client';
 import { browserUuid } from '@/lib/browser-uuid';
+import { readDanceCampaign } from '@/lib/dance-campaign';
 import {
   DANCE_CONVERSION_VERSION,
   funnelParamsSchema,
@@ -25,11 +27,11 @@ export function danceFlowId() {
     try {
       memoryFlow = sessionStorage.getItem('dance-funnel-flow') || browserUuid();
       sessionStorage.setItem('dance-funnel-flow', memoryFlow);
-      diagnostic = sessionStorage.getItem('dance-funnel-diagnostic') === '1';
     } catch {
       memoryFlow = browserUuid();
     }
   }
+  diagnostic = diagnostic || analyticsDiagnostic();
   try {
     document.cookie = `dance_flow=${memoryFlow}; Path=/; SameSite=Lax; Max-Age=86400${location.protocol === 'https:' ? '; Secure' : ''}`;
     if (!installed) {
@@ -85,6 +87,7 @@ export function queueDanceFunnel(event: string, params: unknown) {
     // forward transaction IDs, URLs, photos or arbitrary exception text.
     const clean: Record<string, unknown> = {
       conversion_version: DANCE_CONVERSION_VERSION,
+      ...readDanceCampaign(),
     };
     for (const [key, value] of Object.entries(
       (params || {}) as Record<string, unknown>

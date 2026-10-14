@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "operations:test": "tsx --test tests/operations-attribution.test.ts",
     "security:audit": "pnpm audit --audit-level=moderate --registry=https://registry.npmjs.org",
     "seo:preflight": "node scripts/seo-release-gate.mjs preflight",
     "seo:live": "node scripts/seo-release-gate.mjs live",
