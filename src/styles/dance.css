@@ -2083,3 +2083,114 @@
     height: 580px;
   }
 }
+
+/* Photo-to-video guidance: one clear action for each preparation state. */
+.dance-mobile-start {
+  display: none;
+}
+.dance-flow-steps {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.dance-flow-steps li {
+  border-top: 3px solid var(--line);
+  padding-top: 8px;
+}
+.dance-flow-steps [aria-current='step'] {
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+.dance-photo-progress {
+  margin: 14px 0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.dance-photo-progress strong {
+  color: var(--accent);
+}
+.dance-photo-progress p {
+  margin: 4px 0 0;
+  color: var(--muted);
+}
+.dance-step-next {
+  margin: 14px 0 10px;
+  min-height: 48px;
+  white-space: normal;
+}
+.dance-cost-heading {
+  scroll-margin-top: 24px;
+  font-size: 19px;
+  margin: 20px 0 14px;
+}
+.dance-cost-summary {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.dance-cost-summary p {
+  margin: 8px 0 0;
+}
+.dance-cost-summary p + p {
+  color: var(--muted);
+}
+.dance-checkout-row .dance-primary:disabled {
+  background: var(--line);
+  color: var(--muted) !important;
+  opacity: 1;
+}
+@media (max-width: 767px) {
+  .dance-mobile-start {
+    display: block;
+    margin-top: 16px;
+  }
+  .dance-mobile-start .dance-primary {
+    min-height: 48px;
+    font-size: 15px;
+  }
+  .dance-mobile-start p {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+    margin: 8px 0 0;
+  }
+  .dance-flow-steps {
+    font-size: 12px;
+  }
+  .dance-input-panel .dance-consent {
+    font-size: 14px;
+    line-height: 1.6;
+    align-items: flex-start;
+  }
+  .dance-input-panel .dance-consent input {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    margin-top: 2px;
+  }
+  .dance-input-panel .dance-readiness {
+    font-size: 14px;
+  }
+  .dance-checkout-row .dance-primary {
+    min-height: 48px;
+    white-space: normal;
+    font-size: 14px;
+  }
+  .dance-checkout-row small {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .dance-resolution span > small {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+}

@@ -371,8 +371,11 @@ export function DanceStudio() {
     if (!item) return m['dance.quote.check']();
     return item.canContinue
       ? m['dance.quote.covered']()
-      : m['dance.quote.total']({ price: quotePrice(item.cents) });
+      : m['dance.guide.pack_price']({ price: quotePrice(item.cents) });
   };
+  const photoCount = photos.filter(Boolean).length;
+  const missingRole = photos[0] ? 1 : 0;
+  const costHeading = useRef<HTMLHeadingElement>(null);
   const hasPhoto = photos.some(Boolean);
   useEffect(() => {
     if (!hasPhoto || !quote) return;
@@ -724,6 +727,12 @@ export function DanceStudio() {
               <p className="dance-eyebrow">{t('eyebrow')}</p>
               <h1>{m['dance.headline']()}</h1>
               <p className="dance-lead">{t('lead')}</p>
+              <div className="dance-mobile-start">
+                <a className="dance-primary" href="#studio">
+                  {m['dance.guide.start']()} <ArrowUpRight size={18} />
+                </a>
+                <p>{m['dance.guide.intro']()}</p>
+              </div>
             </div>
           </section>
           <section className="dance-workbench">
@@ -792,10 +801,40 @@ export function DanceStudio() {
               </a>
             </div>
             <div id="studio" className="dance-input-panel">
+              <ol
+                className="dance-flow-steps"
+                aria-label={m['dance.guide.intro']()}
+              >
+                <li aria-current={photoCount < 2 ? 'step' : undefined}>
+                  {m['dance.guide.photos']()}
+                </li>
+                <li aria-current={photoCount === 2 ? 'step' : undefined}>
+                  {m['dance.guide.cost']()}
+                </li>
+                <li>{m['dance.guide.result']()}</li>
+              </ol>
               <div className="dance-section-title">
                 <h2>{m['dance.cast.choose']()}</h2>
               </div>
               <p className="dance-muted">{m['dance.cast.one']()}</p>
+              <div
+                className="dance-photo-progress"
+                role="status"
+                aria-live="polite"
+              >
+                <strong>{m['dance.guide.count']({ count: photoCount })}</strong>
+                <p>
+                  {reading
+                    ? t('reading')
+                    : photoCount === 2
+                      ? m['dance.guide.complete']()
+                      : photoCount === 0
+                        ? m['dance.guide.first']()
+                        : m['dance.guide.missing']({
+                            role: missingRole === 0 ? 'A' : 'B',
+                          })}
+                </p>
+              </div>
               <div className="dance-upload-grid">
                 {roles.map((role, index) => (
                   <div className="dance-upload-slot" key={role}>
@@ -931,6 +970,26 @@ export function DanceStudio() {
                   </div>
                 ))}
               </div>
+              <Button
+                className="dance-primary dance-step-next"
+                disabled={!hydrated || reading || preparing || create.isPending}
+                onClick={() => {
+                  if (photoCount < 2) photoInputs.current[missingRole]?.click();
+                  else {
+                    costHeading.current?.scrollIntoView({ block: 'start' });
+                    costHeading.current?.focus({ preventScroll: true });
+                  }
+                }}
+              >
+                {reading
+                  ? t('reading')
+                  : photoCount === 2
+                    ? m['dance.guide.next']()
+                    : m['dance.guide.pick']({
+                        role: missingRole === 0 ? 'A' : 'B',
+                      })}
+                <ArrowUpRight size={18} />
+              </Button>
               <button
                 type="button"
                 className="dance-swap-roles"
@@ -957,8 +1016,15 @@ export function DanceStudio() {
                 <LockKeyhole size={14} />
                 {t('private')}
               </p>
-              {photos.some(Boolean) && (
+              {photoCount === 2 && (
                 <div className="dance-cast-options">
+                  <h3
+                    ref={costHeading}
+                    tabIndex={-1}
+                    className="dance-cost-heading"
+                  >
+                    {m['dance.guide.cost_title']()}
+                  </h3>
                   <p className="dance-fileinfo">
                     <Upload size={14} />
                     {t('limits')}
@@ -997,6 +1063,27 @@ export function DanceStudio() {
                       ))}
                     </div>
                   </fieldset>
+                  <div className="dance-cost-summary" aria-live="polite">
+                    <strong>{m['dance.guide.summary']()}</strong>
+                    <p>
+                      {!quote
+                        ? m['dance.quote.check']()
+                        : quote.canContinue
+                          ? m['dance.quote.use']({
+                              credits: danceCreditCost(resolution),
+                              remaining: quote.remaining,
+                            })
+                          : m['dance.quote.pack']({
+                              price: quotePrice(quote.cents),
+                              pack: quote.plan!.credits,
+                              credits: danceCreditCost(resolution),
+                              remaining: quote.remaining,
+                            })}
+                    </p>
+                    {quote && !quote.canContinue && (
+                      <p>{m['dance.guide.cost_note']()}</p>
+                    )}
+                  </div>
                   <label className="dance-consent">
                     <input
                       type="checkbox"
@@ -1034,29 +1121,22 @@ export function DanceStudio() {
                           ? m['dance.coming_soon']()
                           : create.isPending || preparing
                             ? t('checking')
-                            : quote?.canContinue
-                              ? m['dance.generate']({
-                                  credits: danceCreditCost(resolution),
-                                })
-                              : m['dance.quote.review']()}{' '}
+                            : !consent
+                              ? m['dance.guide.consent']()
+                              : !session.data?.user
+                                ? m['dance.guide.signin']()
+                                : quote?.canContinue
+                                  ? m['dance.generate']({
+                                      credits: danceCreditCost(resolution),
+                                    })
+                                  : quote
+                                    ? m['dance.guide.charge']({
+                                        price: quotePrice(quote.cents),
+                                      })
+                                    : m['dance.quote.check']()}{' '}
                         <ArrowUpRight size={18} />
                       </Button>
                       <small>{t('nopay')}</small>
-                      <small aria-live="polite">
-                        {!quote
-                          ? m['dance.quote.check']()
-                          : quote.canContinue
-                            ? m['dance.quote.use']({
-                                credits: danceCreditCost(resolution),
-                                remaining: quote.remaining,
-                              })
-                            : m['dance.quote.pack']({
-                                price: quotePrice(quote.cents),
-                                pack: quote.plan!.credits,
-                                credits: danceCreditCost(resolution),
-                                remaining: quote.remaining,
-                              })}
-                      </small>
                       {credits.data && (
                         <small>
                           {m['dance.balance']()}: {credits.data.balance}{' '}
