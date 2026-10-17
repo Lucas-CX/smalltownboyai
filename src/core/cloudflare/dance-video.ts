@@ -1,3 +1,5 @@
+import { videoByteRange } from '@/lib/video-byte-range';
+
 import { cloudBindings } from './dance';
 
 export async function cloudDanceVideoExists(key: string) {
@@ -25,29 +27,19 @@ export async function streamCloudDanceVideo(key: string, request: Request) {
     'Content-Disposition': `${new URL(request.url).searchParams.has('download') ? 'attachment' : 'inline'}; filename="generated-video.mp4"`,
   };
   let range: { offset: number; length: number } | undefined;
-  const value = request.headers.get('range');
-  if (value) {
-    const match = /^bytes=(\d+)-(\d*)$/.exec(value);
-    const start = match ? Number(match[1]) : -1;
-    const end = match?.[2]
-      ? Math.min(Number(match[2]), meta.size - 1)
-      : meta.size - 1;
-    if (
-      !Number.isSafeInteger(start) ||
-      !Number.isSafeInteger(end) ||
-      start < 0 ||
-      start >= meta.size ||
-      end < start
-    ) {
-      return new Response(null, {
-        status: 416,
-        headers: {
-          ...headers,
-          'Content-Length': '0',
-          'Content-Range': `bytes */${meta.size}`,
-        },
-      });
-    }
+  const parsed = videoByteRange(request.headers.get('range'), meta.size);
+  if (parsed === null) {
+    return new Response(null, {
+      status: 416,
+      headers: {
+        ...headers,
+        'Content-Length': '0',
+        'Content-Range': `bytes */${meta.size}`,
+      },
+    });
+  }
+  if (parsed) {
+    const { start, end } = parsed;
     range = { offset: start, length: end - start + 1 };
     headers['Content-Length'] = String(range.length);
     headers['Content-Range'] = `bytes ${start}-${end}/${meta.size}`;

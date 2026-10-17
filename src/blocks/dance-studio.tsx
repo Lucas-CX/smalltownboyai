@@ -34,6 +34,11 @@ import {
   funnelParamsSchema,
   type FunnelParams,
 } from '@/lib/dance-funnel-contract';
+import {
+  clearDanceLoginIntent,
+  consumeDanceLoginIntent,
+  saveDanceLoginIntent,
+} from '@/lib/dance-login-intent';
 import { danceTrendPreview } from '@/lib/dance-media';
 import {
   DANCE_PHOTO_ACCEPT,
@@ -309,8 +314,20 @@ export function DanceStudio() {
     });
     setRequestKey(key);
   }
-  const [showOrders, setShowOrders] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
+  const [loginToken, setLoginToken] = useState<string | null>(null);
+  const [loginContinuation, setLoginContinuation] = useState<{
+    photos: (string | null)[];
+    consent: boolean;
+    requestKey: string;
+    resolution?: DanceResolution;
+  } | null>(null);
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  useEffect(() => {
+    setCurrentJobId(new URLSearchParams(window.location.search).get('task'));
+  }, []);
+  const [submissionUnknown, setSubmissionUnknown] = useState(false);
   const submitLock = useRef(false);
   const [preparing, setPreparing] = useState(false);
   const [draftReadyFor, setDraftReadyFor] = useState<string | null>(null);
@@ -338,7 +355,7 @@ export function DanceStudio() {
     }
     lastUser.current = owner;
     void loadDanceDraft(owner)
-      .then((draft) => {
+      .then(async (draft) => {
         if (canceled) return;
         if (!draft) {
           if (
@@ -369,6 +386,41 @@ export function DanceStudio() {
         setRequestKey(draft.resolution === '720P' ? draft.requestKey : null);
         hadDraftPhotos.current = draft.photos.some(Boolean);
         setDraftNotice('restored');
+        const continuationUrl = new URL(window.location.href);
+        const token = continuationUrl.searchParams.get('continueGeneration');
+        if (owner && token) {
+          const allowed = await consumeDanceLoginIntent(
+            token,
+            {
+              photos: draft.photos,
+              requestKey: draft.requestKey,
+              resolution: draft.resolution,
+              packId: draft.packId,
+            },
+            (
+              performance.getEntriesByType('navigation')[0] as
+                | PerformanceNavigationTiming
+                | undefined
+            )?.type || 'unknown'
+          );
+          continuationUrl.searchParams.delete('continueGeneration');
+          window.history.replaceState(
+            null,
+            '',
+            continuationUrl.pathname +
+              continuationUrl.search +
+              continuationUrl.hash
+          );
+          if (
+            !canceled &&
+            allowed &&
+            !continuationUrl.searchParams.has('payment') &&
+            !continuationUrl.searchParams.has('checkout')
+          ) {
+            setConsent(true);
+            setLoginContinuation({ ...draft, consent: true });
+          }
+        }
         if (
           owner &&
           new URLSearchParams(window.location.search).get('checkout') ===
@@ -495,6 +547,7 @@ export function DanceStudio() {
     queryFn: () => apiPost<Job[]>('/api/dance/refresh', {}),
     enabled: !!session.data?.user,
     retry: false,
+    refetchIntervalInBackground: false,
     refetchInterval: (query) => {
       const active = query.state.data?.filter((job) =>
         ['queued', 'generating', 'reconciling'].includes(job.status)
@@ -507,6 +560,32 @@ export function DanceStudio() {
     },
     staleTime: 10000,
   });
+  const currentJob =
+    jobs.data?.find((job) => job.id === currentJobId) ||
+    jobs.data?.find((job) =>
+      ['queued', 'generating', 'reconciling'].includes(job.status)
+    );
+  useEffect(() => {
+    if (currentJob && !currentJobId) setCurrentJobId(currentJob.id);
+  }, [currentJob?.id, currentJobId]);
+  const featuredJob = currentJob || jobs.data?.[0];
+  const visibleJobs = (jobs.data || []).filter(
+    (job) =>
+      job.id === featuredJob?.id ||
+      ['queued', 'generating', 'reconciling'].includes(job.status)
+  );
+  const historyJobs = (jobs.data || []).filter(
+    (job) => !visibleJobs.some((visible) => visible.id === job.id)
+  );
+  const locatedTask = useRef<string | null>(null);
+  useEffect(() => {
+    if (!featuredJob || locatedTask.current === featuredJob.id) return;
+    if (!['#orders', '#studio-task'].includes(window.location.hash)) return;
+    locatedTask.current = featuredJob.id;
+    requestAnimationFrame(() =>
+      document.getElementById('orders')?.scrollIntoView({ block: 'start' })
+    );
+  }, [featuredJob?.id]);
   const [progressNow, setProgressNow] = useState(0);
   const activeJobs = jobs.data?.some((job) => !!danceProgress(job));
   useEffect(() => {
@@ -519,9 +598,6 @@ export function DanceStudio() {
     if (jobs.data?.some((job) => job.status === 'failed'))
       void qc.invalidateQueries({ queryKey: ['dance-credits'] });
   }, [jobs.data, qc]);
-  useEffect(() => {
-    if (window.location.hash === '#orders') setShowOrders(true);
-  }, []);
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: ['dance-credits'] });
     return qc.invalidateQueries({ queryKey: ['dance-jobs'] });
@@ -547,7 +623,19 @@ export function DanceStudio() {
       }),
     onMutate: (draft) =>
       trackDance('dance_upload_started', { resolution: draft.resolution }),
-    onSuccess: (job) => {
+    onSuccess: async (job) => {
+      await qc.cancelQueries({
+        queryKey: ['dance-jobs', session.data?.user.id],
+      });
+      setSubmissionUnknown(false);
+      qc.setQueryData<Job[]>(
+        ['dance-jobs', session.data?.user.id],
+        (existing = []) => [
+          job,
+          ...existing.filter((item) => item.id !== job.id),
+        ]
+      );
+      setCurrentJobId(job.id);
       const params = {
         resolution: job.resolution,
         simulation: job.simulation,
@@ -561,9 +649,13 @@ export function DanceStudio() {
       setRequestKey(null);
       setPhotos([null, null]);
       setConsent(false);
-      setShowOrders(true);
+      setShowHistory(false);
       setPaymentReturn(false);
-      window.history.replaceState(null, '', localizeHref('/#orders'));
+      window.history.replaceState(
+        null,
+        '',
+        localizeHref(`/?task=${encodeURIComponent(job.id)}#orders`)
+      );
       requestAnimationFrame(() =>
         document.getElementById('orders')?.scrollIntoView({
           behavior: window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -577,6 +669,7 @@ export function DanceStudio() {
       refresh();
     },
     onError: (e: Error, draft) => {
+      setSubmissionUnknown(true);
       trackDance('dance_upload_failed', {
         resolution: draft.resolution,
         reason: danceErrorReason(e),
@@ -586,7 +679,7 @@ export function DanceStudio() {
         refresh();
       } else {
         setError(t('createerror'));
-        setShowOrders(true);
+        setShowHistory(false);
         refresh();
       }
     },
@@ -602,12 +695,15 @@ export function DanceStudio() {
     onError: (_e: Error, variables) =>
       setOrderError({ id: variables.id, message: t('actionerror') }),
   });
-  async function generate(restoredDraft?: {
-    photos: (string | null)[];
-    consent: boolean;
-    requestKey: string;
-    resolution?: DanceResolution;
-  }) {
+  async function generate(
+    restoredDraft?: {
+      photos: (string | null)[];
+      consent: boolean;
+      requestKey: string;
+      resolution?: DanceResolution;
+    },
+    afterLogin = false
+  ) {
     if (
       previewOnly ||
       paymentUnconfirmed ||
@@ -652,6 +748,14 @@ export function DanceStudio() {
       });
       saved = true;
       if (!session.data?.user) {
+        const token = browserUuid();
+        await saveDanceLoginIntent(token, {
+          photos: draft.photos,
+          requestKey: draft.requestKey,
+          resolution: draft.resolution,
+          packId,
+        });
+        setLoginToken(token);
         trackDance('dance_login_required', { stage: 'generation' });
         setLoginOpen(true);
         return;
@@ -662,6 +766,7 @@ export function DanceStudio() {
         staleTime: 0,
       });
       if (account.balance < danceCreditCost(draft.resolution)) {
+        if (afterLogin) return; // Show packs; never purchase a default pack implicitly.
         trackDance('dance_credits_required', { resolution: draft.resolution });
         const checkoutKey = (checkoutKeys.current[packId] ||= browserUuid());
         await saveDanceDraft({
@@ -711,6 +816,23 @@ export function DanceStudio() {
       }
     }
   }
+  useEffect(() => {
+    if (
+      !loginContinuation ||
+      session.isPending ||
+      !session.data?.user ||
+      draftReadyFor !== session.data.user.id
+    )
+      return;
+    const draft = loginContinuation;
+    setLoginContinuation(null);
+    void generate(draft, true);
+  }, [
+    loginContinuation,
+    session.isPending,
+    session.data?.user.id,
+    draftReadyFor,
+  ]);
   async function select(file: File | undefined, index: number) {
     if (!file || readLock.current) return;
     trackDance('dance_photo_selected', { role: roles[index] });
@@ -790,6 +912,216 @@ export function DanceStudio() {
       setReadingRole(null);
     }
   }
+  const renderJob = (job: Job) => (
+    <article className="dance-order" key={job.id} data-task-id={job.id}>
+      <div className="dance-result-meta">
+        <span className="dance-chip">
+          {job.status === 'deleted'
+            ? m['dance.deleted']()
+            : job.expired
+              ? t('expired')
+              : !job.simulation && job.status === 'succeeded'
+                ? m['dance.resultready']()
+                : t(`status.${job.status}`)}
+        </span>
+        <p className="dance-order-date">
+          {new Date(job.createdAt * 1000).toLocaleString(
+            getLocale() === 'zh' ? 'zh-CN' : 'en-US',
+            {
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            }
+          )}
+        </p>
+        {!job.expired &&
+          job.status !== 'deleted' &&
+          typeof job.expiresAt === 'number' && (
+            <p className="dance-order-date">
+              {m['dance.download_deadline']({
+                date: new Date(job.expiresAt * 1000).toLocaleString(
+                  getLocale() === 'zh' ? 'zh-CN' : 'en-US',
+                  {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: '2-digit',
+                  }
+                ),
+              })}
+            </p>
+          )}
+        {!job.expired &&
+          job.status !== 'deleted' &&
+          job.status === 'succeeded' && (
+            <p className="dance-result-caption">
+              {job.simulation
+                ? t('mockresult')
+                : job.resolution?.toLowerCase() || '480p'}
+            </p>
+          )}
+        {(job.expired || job.status === 'deleted') && (
+          <p>
+            {job.status === 'deleted'
+              ? m['dance.deletedinfo']()
+              : t('expiredinfo')}{' '}
+            <Link href="/contact">{m['settings.nav.tickets']()}</Link>
+          </p>
+        )}
+        {['queued', 'generating', 'reconciling'].includes(job.status) &&
+          !job.expired && (
+            <p role="status" className="dance-order-progress">
+              <span className="dance-spinner" />
+              {job.status === 'queued'
+                ? m['dance.progress.queued']()
+                : job.status === 'reconciling'
+                  ? m['dance.progress.reconciling']()
+                  : m['dance.progress.generating']()}
+              <span>
+                {m['dance.progress.elapsed']({
+                  minutes:
+                    danceProgress(job, progressNow || Date.now())?.minutes ?? 0,
+                })}
+              </span>
+            </p>
+          )}
+        {job.status === 'unpaid' && !job.expired && (
+          <div className="dance-order-cast">
+            {roles.map((role, i) => (
+              <figure key={role}>
+                <img
+                  src={`/api/dance/file?id=${job.id}&slot=${i}`}
+                  width="60"
+                  height="76"
+                  alt={t(role)}
+                />
+                <figcaption>{t(role)}</figcaption>
+              </figure>
+            ))}
+          </div>
+        )}
+        {job.errorCode && (
+          <p className="dance-error">
+            {!job.simulation && job.status === 'failed'
+              ? m['dance.realfailureinfo']()
+              : t(
+                  job.status === 'reconciling' ? 'reconcileinfo' : 'failureinfo'
+                )}
+          </p>
+        )}
+        {['queued', 'generating', 'reconciling'].includes(job.status) &&
+          !job.expired &&
+          danceProgress(job, progressNow || Date.now())?.delayed && (
+            <p className="dance-muted" role="status">
+              {m['dance.delivery.wait']()} {m['dance.progress.safe']()}{' '}
+              <Link href="/contact">{t('support')}</Link>
+            </p>
+          )}
+      </div>
+      {job.status === 'succeeded' && !job.expired && (
+        <div className="dance-result-media">
+          <DanceVideo
+            src={`/api/dance/file?id=${job.id}&slot=video`}
+            label={job.simulation ? t('mockresult') : m['dance.realresult']()}
+            diagnose={() =>
+              qc.fetchQuery({
+                queryKey: ['dance-video-status', job.id],
+                queryFn: () => readDanceVideoState(job.id),
+                staleTime: 0,
+                retry: false,
+              })
+            }
+            errorLabels={{
+              authentication_required: m['dance.video.auth_required'](),
+              video_network: m['dance.video.network'](),
+              video_decode: m['dance.video.decode'](),
+              video_unsupported: m['dance.video.decode'](),
+              video_missing: m['dance.video.missing'](),
+              video_expired: m['dance.video.expired'](),
+              video_not_ready: m['dance.video.not_ready'](),
+              video_unavailable: m['dance.video.unavailable'](),
+            }}
+            signIn={{
+              href: localizeHref('/sign-in?callbackUrl=%2F%23orders'),
+              label: m['common.sign.sign_in_title'](),
+            }}
+            onRetry={() =>
+              trackDance('dance_video_retry', {
+                stage: 'result',
+                resolution: job.resolution,
+              })
+            }
+            onRecovered={() =>
+              trackDance('dance_video_recovered', {
+                stage: 'result',
+                resolution: job.resolution,
+              })
+            }
+            onPlaybackError={(reason) =>
+              trackDance('dance_video_failed', {
+                stage: 'result',
+                reason,
+                simulation: job.simulation,
+                resolution: job.resolution,
+              })
+            }
+            errorLabel={t('videoerror')}
+            retryLabel={t('retry')}
+            openLabel={t('openvideo')}
+          />
+          <a
+            onClick={() =>
+              trackDance('dance_download_clicked', {
+                simulation: job.simulation,
+                resolution: job.resolution,
+                payment_mode: job.paymentMode,
+              })
+            }
+            className="dance-download"
+            href={`/api/dance/file?id=${job.id}&slot=video&download=1`}
+          >
+            {job.simulation ? t('download') : m['dance.downloadreal']()}
+          </a>
+          <a
+            className="dance-another-link"
+            href="#studio"
+            onClick={() => {
+              trackDance('dance_make_another_clicked', {
+                resolution: job.resolution,
+              });
+            }}
+          >
+            {m['dance.result.another']()}
+          </a>
+        </div>
+      )}
+      {orderError?.id === job.id && (
+        <p className="dance-error" role="alert">
+          {orderError.message}
+        </p>
+      )}
+      <div className="dance-order-actions">
+        <button
+          disabled={action.isPending || !!job.supportRequested}
+          onClick={() => action.mutate({ id: job.id, action: 'support' })}
+        >
+          {t(job.supportRequested ? 'requested' : 'support')}
+        </button>
+        {job.status !== 'deleted' && (
+          <button
+            disabled={action.isPending}
+            onClick={() => {
+              setOrderError(null);
+              setDeleteTarget(job.id);
+            }}
+          >
+            {t('delete')}
+          </button>
+        )}
+      </div>
+    </article>
+  );
   return (
     <div className="dance-page">
       <header className="dance-header">
@@ -809,7 +1141,7 @@ export function DanceStudio() {
               onClick={(event) => {
                 if (!session.data?.user) return;
                 event.preventDefault();
-                setShowOrders(true);
+                setShowHistory(false);
                 window.history.replaceState(null, '', '#orders');
                 requestAnimationFrame(() =>
                   document
@@ -836,6 +1168,11 @@ export function DanceStudio() {
                     ? t('account')
                     : m['common.sign.sign_in_title']()}
               </span>
+              {activeJobs && (
+                <span className="dance-task-count">
+                  {jobs.data?.filter((job) => !!danceProgress(job)).length}
+                </span>
+              )}
               <ArrowUpRight size={16} />
             </Link>
           )}
@@ -942,721 +1279,545 @@ export function DanceStudio() {
               id="studio"
               className={`dance-input-panel ${photoCount === 2 ? 'dance-photos-ready' : ''}`}
             >
-              {paymentReturn && (
-                <div
-                  className={`dance-payment-review ${paymentUnconfirmed ? '' : 'is-confirmed'}`}
-                  role="status"
-                >
-                  {paymentUnconfirmed ? (
-                    <AlertCircle size={28} />
-                  ) : (
-                    <Check size={28} />
-                  )}
-                  <h2>
-                    {paymentReview.isFetching
-                      ? m['dance.flow.verifying']()
-                      : paymentUnconfirmed
-                        ? m['dance.flow.pending']()
-                        : m['dance.flow.paid']()}
-                  </h2>
-                  <p>
-                    {paymentUnconfirmed
-                      ? m['dance.flow.payment_safe']()
-                      : m['dance.flow.paid_next']()}
-                  </p>
-                  {paymentUnconfirmed &&
-                    (session.data?.user ? (
-                      <button
-                        className="dance-swap-roles"
-                        disabled={paymentReview.isFetching}
-                        onClick={() => void paymentReview.refetch()}
-                      >
-                        {m['dance.flow.recheck']()}
-                      </button>
+              <div>
+                {paymentReturn && (
+                  <div
+                    className={`dance-payment-review ${paymentUnconfirmed ? '' : 'is-confirmed'}`}
+                    role="status"
+                  >
+                    {paymentUnconfirmed ? (
+                      <AlertCircle size={28} />
                     ) : (
-                      <button
-                        className="dance-swap-roles"
-                        onClick={() => {
-                          void saveCurrentDraft()
-                            .then(() => setLoginOpen(true))
-                            .catch(() => setError(m['dance.drafterror']()));
-                        }}
-                      >
-                        {m['dance.flow.login_verify']()}
-                      </button>
-                    ))}
-                  {paymentUnconfirmed && (
-                    <Link href="/contact">{t('support')}</Link>
-                  )}
-                </div>
-              )}
-              {photoCount < 2 && error && (
-                <p className="dance-error" role="alert">
-                  {error}
-                </p>
-              )}
-              <ol
-                className="dance-flow-steps"
-                aria-label={m['dance.guide.intro']()}
-              >
-                <li aria-current={photoCount < 2 ? 'step' : undefined}>
-                  {m['dance.guide.photos']()}
-                </li>
-                <li aria-current={photoCount === 2 ? 'step' : undefined}>
-                  {m['dance.guide.cost']()}
-                </li>
-                <li>{m['dance.guide.result']()}</li>
-              </ol>
-              <div className="dance-section-title">
-                <h2>
-                  {photoCount === 2
-                    ? m['dance.flow.photos_ready']()
-                    : m['dance.cast.choose']()}
-                </h2>
-              </div>
-              {photoCount < 2 && (
-                <p className="dance-muted">{m['dance.cast.one']()}</p>
-              )}
-              <div
-                className="dance-photo-progress"
-                role="status"
-                aria-live="polite"
-              >
-                <strong>{m['dance.guide.count']({ count: photoCount })}</strong>
-                <p>
-                  {reading
-                    ? t('reading')
-                    : photoCount === 2
-                      ? m['dance.guide.complete']()
-                      : photoCount === 0
-                        ? m['dance.guide.first']()
-                        : m['dance.guide.missing']({
-                            role: missingRole === 0 ? 'A' : 'B',
-                          })}
-                </p>
-              </div>
-              {photoCount < 2 && (
-                <details className="dance-photo-specs">
-                  <summary>{m['dance.flow.photo_help']()}</summary>
-                  <p>{t('limits')}</p>
-                </details>
-              )}
-              {draftNotice && (
-                <p className="dance-draft-notice" role="status">
-                  {draftNotice === 'error'
-                    ? m['dance.guide.draft_error']()
-                    : draftNotice === 'restored'
-                      ? m['dance.guide.draft_restored']()
-                      : m['dance.guide.draft_saved']()}
-                </p>
-              )}
-              <div className="dance-upload-grid">
-                {roles.map((role, index) => (
-                  <div className="dance-upload-slot" key={role}>
-                    <p className="dance-role-description">
-                      {index === 0
-                        ? m['dance.cast.role_a']()
-                        : m['dance.cast.role_b']()}
+                      <Check size={28} />
+                    )}
+                    <h2>
+                      {paymentReview.isFetching
+                        ? m['dance.flow.verifying']()
+                        : paymentUnconfirmed
+                          ? m['dance.flow.pending']()
+                          : m['dance.flow.paid']()}
+                    </h2>
+                    <p>
+                      {paymentUnconfirmed
+                        ? m['dance.flow.payment_safe']()
+                        : m['dance.flow.paid_next']()}
                     </p>
-                    <label
-                      className={`dance-upload ${previews[index] ? 'has-photo' : 'dance-upload-start'} ${!photos[index] && previews[index] ? 'dance-default-photo' : ''}`}
-                      onDragOver={(event) => event.preventDefault()}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        if (create.isPending || preparing || readLock.current)
-                          return;
-                        if (event.dataTransfer.files.length !== 1) {
-                          setPhotoErrors((current) =>
-                            current.map((v, i) =>
-                              i === index ? t('onefile') : v
-                            )
-                          );
-                          return;
-                        }
-                        void select(event.dataTransfer.files[0], index);
-                      }}
-                    >
-                      <span className="dance-role">
-                        <b>0{index + 1}</b>
-                        {t(role)}
-                        {photos[index] && (
-                          <span aria-label={m['dance.cast.selected']()}>
-                            {' '}
-                            ✓
-                          </span>
-                        )}
-                      </span>
-                      {previews[index] ? (
-                        <span className="dance-photo-frame">
-                          <img
-                            data-clarity-mask="true"
-                            src={previews[index]!}
-                            alt={t(role)}
-                          />
-                        </span>
-                      ) : (
-                        <span className="dance-upload-icon">
-                          <Plus size={30} />
-                          <span>{t('upload')}</span>
-                        </span>
-                      )}
-                      <input
-                        ref={(element) => {
-                          photoInputs.current[index] = element;
-                        }}
-                        type="file"
-                        accept={DANCE_PHOTO_ACCEPT}
-                        aria-label={t(role)}
-                        aria-invalid={!!photoErrors[index]}
-                        aria-describedby={`photo-help-${index}${photoErrors[index] ? ` photo-error-${index}` : ''}`}
-                        disabled={
-                          !draftReadyFor ||
-                          session.isPending ||
-                          reading ||
-                          create.isPending ||
-                          preparing
-                        }
-                        onClick={() => {
-                          trackDance('dance_photo_picker_opened', {
-                            role,
-                            stage: pickerSource.current,
-                          });
-                          pickerSource.current = 'studio';
-                        }}
-                        onChange={(event) => {
-                          const input = event.currentTarget;
-                          const file = input.files?.[0];
-                          // Keep mobile picker-backed files alive until decoding finishes.
-                          void select(file, index).finally(() => {
-                            input.value = '';
-                          });
-                        }}
-                      />
-                      <span
-                        className="dance-upload-hint"
-                        id={`photo-help-${index}`}
-                      >
-                        {readingRole === index
-                          ? m['dance.photo.preparing']()
-                          : previews[index]
-                            ? m['dance.cast.replace']()
-                            : m['dance.startanyrole']()}
-                      </span>
-                    </label>
-                    {photos[index] && (
-                      <button
-                        type="button"
-                        className="dance-remove-photo"
-                        disabled={reading || create.isPending || preparing}
-                        aria-label={t('remove') + ' ' + t(role)}
-                        onClick={() => {
-                          setPhotos((current) =>
-                            current.map((v, i) => (i === index ? null : v))
-                          );
-                          setRequestKey(null);
-                          setPhotoErrors((current) =>
-                            current.map((v, i) => (i === index ? '' : v))
-                          );
-                        }}
-                      >
-                        {t('remove')}
-                      </button>
-                    )}
-                    {photoErrors[index] && (
-                      <div
-                        id={`photo-error-${index}`}
-                        className="dance-photo-recovery"
-                        role="alert"
-                      >
-                        <p className="dance-photo-error">
-                          {photoErrors[index]}
-                        </p>
-                        {photos[index] && (
-                          <p>{m['dance.photo.previous_kept']()}</p>
-                        )}
+                    {paymentUnconfirmed &&
+                      (session.data?.user ? (
                         <button
-                          type="button"
-                          disabled={reading || create.isPending || preparing}
-                          onClick={() => photoInputs.current[index]?.click()}
+                          className="dance-swap-roles"
+                          disabled={paymentReview.isFetching}
+                          onClick={() => void paymentReview.refetch()}
                         >
-                          {m['dance.photo.choose_another']()}
+                          {m['dance.flow.recheck']()}
                         </button>
-                      </div>
-                    )}
-                    {photos[index] && photoWarnings[index] && (
-                      <p className="dance-photo-hint">{photoWarnings[index]}</p>
+                      ) : (
+                        <button
+                          className="dance-swap-roles"
+                          onClick={() => {
+                            void saveCurrentDraft()
+                              .then(() => setLoginOpen(true))
+                              .catch(() => setError(m['dance.drafterror']()));
+                          }}
+                        >
+                          {m['dance.flow.login_verify']()}
+                        </button>
+                      ))}
+                    {paymentUnconfirmed && (
+                      <Link href="/contact">{t('support')}</Link>
                     )}
                   </div>
-                ))}
-              </div>
-              {photoCount < 2 && (
-                <Button
-                  className="dance-primary dance-step-next"
+                )}
+                {photoCount < 2 && error && (
+                  <p className="dance-error" role="alert">
+                    {error}
+                  </p>
+                )}
+                <ol
+                  className="dance-flow-steps"
+                  aria-label={m['dance.guide.intro']()}
+                >
+                  <li aria-current={photoCount < 2 ? 'step' : undefined}>
+                    {m['dance.guide.photos']()}
+                  </li>
+                  <li aria-current={photoCount === 2 ? 'step' : undefined}>
+                    {m['dance.guide.cost']()}
+                  </li>
+                  <li>{m['dance.guide.result']()}</li>
+                </ol>
+                <div className="dance-section-title">
+                  <h2>
+                    {photoCount === 2
+                      ? m['dance.flow.photos_ready']()
+                      : m['dance.cast.choose']()}
+                  </h2>
+                </div>
+                {photoCount < 2 && (
+                  <p className="dance-muted">{m['dance.cast.one']()}</p>
+                )}
+                <div
+                  className="dance-photo-progress"
+                  role="status"
+                  aria-live="polite"
+                >
+                  <strong>
+                    {m['dance.guide.count']({ count: photoCount })}
+                  </strong>
+                  <p>
+                    {reading
+                      ? t('reading')
+                      : photoCount === 2
+                        ? m['dance.guide.complete']()
+                        : photoCount === 0
+                          ? m['dance.guide.first']()
+                          : m['dance.guide.missing']({
+                              role: missingRole === 0 ? 'A' : 'B',
+                            })}
+                  </p>
+                </div>
+                {photoCount < 2 && (
+                  <details className="dance-photo-specs">
+                    <summary>{m['dance.flow.photo_help']()}</summary>
+                    <p>{t('limits')}</p>
+                  </details>
+                )}
+                {draftNotice && (
+                  <p className="dance-draft-notice" role="status">
+                    {draftNotice === 'error'
+                      ? m['dance.guide.draft_error']()
+                      : draftNotice === 'restored'
+                        ? m['dance.guide.draft_restored']()
+                        : m['dance.guide.draft_saved']()}
+                  </p>
+                )}
+                <div className="dance-upload-grid">
+                  {roles.map((role, index) => (
+                    <div className="dance-upload-slot" key={role}>
+                      <p className="dance-role-description">
+                        {index === 0
+                          ? m['dance.cast.role_a']()
+                          : m['dance.cast.role_b']()}
+                      </p>
+                      <label
+                        className={`dance-upload ${previews[index] ? 'has-photo' : 'dance-upload-start'} ${!photos[index] && previews[index] ? 'dance-default-photo' : ''}`}
+                        onDragOver={(event) => event.preventDefault()}
+                        onDrop={(event) => {
+                          event.preventDefault();
+                          if (create.isPending || preparing || readLock.current)
+                            return;
+                          if (event.dataTransfer.files.length !== 1) {
+                            setPhotoErrors((current) =>
+                              current.map((v, i) =>
+                                i === index ? t('onefile') : v
+                              )
+                            );
+                            return;
+                          }
+                          void select(event.dataTransfer.files[0], index);
+                        }}
+                      >
+                        <span className="dance-role">
+                          <b>0{index + 1}</b>
+                          {t(role)}
+                          {photos[index] && (
+                            <span aria-label={m['dance.cast.selected']()}>
+                              {' '}
+                              ✓
+                            </span>
+                          )}
+                        </span>
+                        {previews[index] ? (
+                          <span className="dance-photo-frame">
+                            <img
+                              data-clarity-mask="true"
+                              src={previews[index]!}
+                              alt={t(role)}
+                            />
+                          </span>
+                        ) : (
+                          <span className="dance-upload-icon">
+                            <Plus size={30} />
+                            <span>{t('upload')}</span>
+                          </span>
+                        )}
+                        <input
+                          ref={(element) => {
+                            photoInputs.current[index] = element;
+                          }}
+                          type="file"
+                          accept={DANCE_PHOTO_ACCEPT}
+                          aria-label={t(role)}
+                          aria-invalid={!!photoErrors[index]}
+                          aria-describedby={`photo-help-${index}${photoErrors[index] ? ` photo-error-${index}` : ''}`}
+                          disabled={
+                            !draftReadyFor ||
+                            session.isPending ||
+                            reading ||
+                            create.isPending ||
+                            preparing
+                          }
+                          onClick={() => {
+                            trackDance('dance_photo_picker_opened', {
+                              role,
+                              stage: pickerSource.current,
+                            });
+                            pickerSource.current = 'studio';
+                          }}
+                          onChange={(event) => {
+                            const input = event.currentTarget;
+                            const file = input.files?.[0];
+                            // Keep mobile picker-backed files alive until decoding finishes.
+                            void select(file, index).finally(() => {
+                              input.value = '';
+                            });
+                          }}
+                        />
+                        <span
+                          className="dance-upload-hint"
+                          id={`photo-help-${index}`}
+                        >
+                          {readingRole === index
+                            ? m['dance.photo.preparing']()
+                            : previews[index]
+                              ? m['dance.cast.replace']()
+                              : m['dance.startanyrole']()}
+                        </span>
+                      </label>
+                      {photos[index] && (
+                        <button
+                          type="button"
+                          className="dance-remove-photo"
+                          disabled={reading || create.isPending || preparing}
+                          aria-label={t('remove') + ' ' + t(role)}
+                          onClick={() => {
+                            setPhotos((current) =>
+                              current.map((v, i) => (i === index ? null : v))
+                            );
+                            setRequestKey(null);
+                            setPhotoErrors((current) =>
+                              current.map((v, i) => (i === index ? '' : v))
+                            );
+                          }}
+                        >
+                          {t('remove')}
+                        </button>
+                      )}
+                      {photoErrors[index] && (
+                        <div
+                          id={`photo-error-${index}`}
+                          className="dance-photo-recovery"
+                          role="alert"
+                        >
+                          <p className="dance-photo-error">
+                            {photoErrors[index]}
+                          </p>
+                          {photos[index] && (
+                            <p>{m['dance.photo.previous_kept']()}</p>
+                          )}
+                          <button
+                            type="button"
+                            disabled={reading || create.isPending || preparing}
+                            onClick={() => photoInputs.current[index]?.click()}
+                          >
+                            {m['dance.photo.choose_another']()}
+                          </button>
+                        </div>
+                      )}
+                      {photos[index] && photoWarnings[index] && (
+                        <p className="dance-photo-hint">
+                          {photoWarnings[index]}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {photoCount < 2 && (
+                  <Button
+                    className="dance-primary dance-step-next"
+                    disabled={
+                      !draftReadyFor ||
+                      session.isPending ||
+                      reading ||
+                      preparing ||
+                      create.isPending
+                    }
+                    onClick={() => {
+                      if (photoCount < 2)
+                        photoInputs.current[missingRole]?.click();
+                      else {
+                        costHeading.current?.scrollIntoView({ block: 'start' });
+                        costHeading.current?.focus({ preventScroll: true });
+                      }
+                    }}
+                  >
+                    {reading
+                      ? t('reading')
+                      : photoCount === 2
+                        ? m['dance.guide.next']()
+                        : m['dance.guide.pick']({
+                            role: missingRole === 0 ? 'A' : 'B',
+                          })}
+                    <ArrowUpRight size={18} />
+                  </Button>
+                )}
+                <button
+                  type="button"
+                  className="dance-swap-roles"
                   disabled={
-                    !draftReadyFor ||
-                    session.isPending ||
+                    !photos.some(Boolean) ||
                     reading ||
                     preparing ||
                     create.isPending
                   }
                   onClick={() => {
-                    if (photoCount < 2)
-                      photoInputs.current[missingRole]?.click();
-                    else {
-                      costHeading.current?.scrollIntoView({ block: 'start' });
-                      costHeading.current?.focus({ preventScroll: true });
-                    }
+                    setPhotos(([a, b]) => [b, a]);
+                    setPhotoErrors(([a, b]) => [b, a]);
+                    setPhotoWarnings(([a, b]) => [b, a]);
+                    setRequestKey(null);
                   }}
                 >
-                  {reading
-                    ? t('reading')
-                    : photoCount === 2
-                      ? m['dance.guide.next']()
-                      : m['dance.guide.pick']({
-                          role: missingRole === 0 ? 'A' : 'B',
-                        })}
-                  <ArrowUpRight size={18} />
-                </Button>
-              )}
-              <button
-                type="button"
-                className="dance-swap-roles"
-                disabled={
-                  !photos.some(Boolean) ||
-                  reading ||
-                  preparing ||
-                  create.isPending
-                }
-                onClick={() => {
-                  setPhotos(([a, b]) => [b, a]);
-                  setPhotoErrors(([a, b]) => [b, a]);
-                  setPhotoWarnings(([a, b]) => [b, a]);
-                  setRequestKey(null);
-                }}
-              >
-                {m['dance.cast.swap']()}
-              </button>
+                  {m['dance.cast.swap']()}
+                </button>
 
-              {photoCount === 2 && (
-                <div className="dance-cast-options">
-                  {(!quote || quote.canContinue) && (
-                    <h3
-                      ref={costHeading}
-                      tabIndex={-1}
-                      className="dance-cost-heading"
-                    >
-                      {m['dance.guide.cost_title']()}
-                    </h3>
-                  )}
-                  {quote && !quote.canContinue && !paymentUnconfirmed && (
-                    <fieldset
-                      className="dance-inline-packs"
-                      disabled={preparing || create.isPending}
-                    >
-                      <legend>{m['dance.inline.choose']()}</legend>
-                      {dancePlans.map((plan) => (
-                        <label
-                          key={plan.id}
-                          className={packId === plan.id ? 'is-selected' : ''}
+                {photoCount === 2 && (
+                  <div className="dance-cast-options">
+                    {(!quote || quote.canContinue) && (
+                      <h3
+                        ref={costHeading}
+                        tabIndex={-1}
+                        className="dance-cost-heading"
+                      >
+                        {m['dance.guide.cost_title']()}
+                      </h3>
+                    )}
+                    {session.data?.user &&
+                      quote &&
+                      !quote.canContinue &&
+                      !paymentUnconfirmed && (
+                        <fieldset
+                          className="dance-inline-packs"
+                          disabled={preparing || create.isPending}
                         >
-                          <input
-                            type="radio"
-                            name="video-pack"
-                            value={plan.id}
-                            checked={packId === plan.id}
-                            onChange={() => setPackId(plan.id)}
-                          />
-                          <span>
-                            <strong>
-                              {m['dance.inline.count']({ count: plan.videos })}
-                            </strong>
-                            {plan.id === 'friends' && (
-                              <small>{m['dance.pack.recommended']()}</small>
-                            )}
-                          </span>
-                          <span>
-                            <strong>{quotePrice(plan.cents)}</strong>
-                            <small>
-                              {m['dance.purchase.unitprice']({
-                                price: (plan.cents / plan.videos / 100).toFixed(
-                                  2
+                          <legend>{m['dance.inline.choose']()}</legend>
+                          {dancePlans.map((plan) => (
+                            <label
+                              key={plan.id}
+                              className={
+                                packId === plan.id ? 'is-selected' : ''
+                              }
+                            >
+                              <input
+                                type="radio"
+                                name="video-pack"
+                                value={plan.id}
+                                checked={packId === plan.id}
+                                onChange={() => setPackId(plan.id)}
+                              />
+                              <span>
+                                <strong>
+                                  {m['dance.inline.count']({
+                                    count: plan.videos,
+                                  })}
+                                </strong>
+                                {plan.id === 'friends' && (
+                                  <small>{m['dance.pack.recommended']()}</small>
+                                )}
+                              </span>
+                              <span>
+                                <strong>{quotePrice(plan.cents)}</strong>
+                                <small>
+                                  {m['dance.purchase.unitprice']({
+                                    price: (
+                                      plan.cents /
+                                      plan.videos /
+                                      100
+                                    ).toFixed(2),
+                                  })}
+                                </small>
+                              </span>
+                            </label>
+                          ))}
+                          <p>{m['dance.inline.note']()}</p>
+                        </fieldset>
+                      )}
+                    {!session.data?.user && (
+                      <p className="dance-flow-spec">
+                        {m['dance.flow.login_balance']()}
+                      </p>
+                    )}
+                    {(!quote || quote.canContinue) && (
+                      <div className="dance-cost-summary" aria-live="polite">
+                        <p>
+                          {!quote
+                            ? m['dance.quote.check']()
+                            : m['dance.flow.use_count']({
+                                count: Math.floor(
+                                  quote.remaining / danceCreditCost(resolution)
                                 ),
                               })}
-                            </small>
-                          </span>
-                        </label>
-                      ))}
-                      <p>{m['dance.inline.note']()}</p>
-                    </fieldset>
-                  )}
-                  {(!quote || quote.canContinue) && (
-                    <div className="dance-cost-summary" aria-live="polite">
-                      <p>
-                        {!quote
-                          ? m['dance.quote.check']()
-                          : m['dance.flow.use_count']({
-                              count: Math.floor(
-                                quote.remaining / danceCreditCost(resolution)
-                              ),
+                        </p>
+                        {quote?.canContinue && (
+                          <small>
+                            {m['dance.flow.credit_detail']({
+                              credits: danceCreditCost(resolution),
+                              remaining: quote.remaining,
                             })}
-                      </p>
-                      {quote?.canContinue && (
-                        <small>
-                          {m['dance.flow.credit_detail']({
-                            credits: danceCreditCost(resolution),
-                            remaining: quote.remaining,
-                          })}
-                        </small>
-                      )}
-                    </div>
-                  )}
-                  <p className="dance-flow-spec">{m['dance.output.spec']()}</p>
-                  <p className="dance-flow-spec">
-                    {m['dance.flow.template_note']()}
-                  </p>
-                  <label className="dance-consent">
-                    <input
-                      type="checkbox"
-                      checked={consent}
-                      onChange={(e) => setConsent(e.target.checked)}
-                    />
-                    {t('consent')}
-                  </label>
-
-                  <div className="dance-checkout-row">
-                    <div>
-                      <Button
-                        className="dance-primary"
-                        disabled={
-                          previewOnly ||
-                          paymentUnconfirmed ||
-                          session.isPending ||
-                          !consent ||
-                          !photos.every(Boolean) ||
-                          create.isPending ||
-                          reading ||
-                          preparing
-                        }
-                        onClick={() => void generate()}
-                      >
-                        {previewOnly
-                          ? m['dance.coming_soon']()
-                          : paymentUnconfirmed
-                            ? m['dance.flow.pending']()
-                            : create.isPending || preparing
-                              ? t('checking')
-                              : !consent
-                                ? m['dance.guide.consent']()
-                                : !session.data?.user
-                                  ? m['dance.inline.signin']({
-                                      price: quotePrice(selectedPlan.cents),
-                                    })
-                                  : quote?.canContinue
-                                    ? m['dance.flow.generate_one']()
-                                    : quote
-                                      ? m['dance.guide.charge']({
-                                          price: quotePrice(selectedPlan.cents),
-                                        })
-                                      : m['dance.quote.check']()}{' '}
-                        <ArrowUpRight size={18} />
-                      </Button>
-
-                      {settings.data?.simulation && (
-                        <small>{t('sandbox')}</small>
-                      )}
-                    </div>
-                  </div>
-                  <p className="dance-flow-footnote">
-                    {paymentUnconfirmed
-                      ? m['dance.flow.payment_safe']()
-                      : quote?.canContinue
-                        ? m['dance.flow.no_auto']()
-                        : m['dance.flow.login_next']()}
-                  </p>
-                  {error && (
-                    <p className="dance-error" role="alert">
-                      <AlertCircle size={16} />
-                      {error}
+                          </small>
+                        )}
+                      </div>
+                    )}
+                    <p className="dance-flow-spec">
+                      {m['dance.output.spec']()}
                     </p>
+                    <p className="dance-flow-spec">
+                      {m['dance.flow.template_note']()}
+                    </p>
+                    <label className="dance-consent">
+                      <input
+                        type="checkbox"
+                        checked={consent}
+                        onChange={(e) => setConsent(e.target.checked)}
+                      />
+                      {t('consent')}
+                    </label>
+
+                    <div className="dance-checkout-row">
+                      <div>
+                        <Button
+                          className="dance-primary"
+                          disabled={
+                            previewOnly ||
+                            paymentUnconfirmed ||
+                            session.isPending ||
+                            !consent ||
+                            !photos.every(Boolean) ||
+                            create.isPending ||
+                            reading ||
+                            preparing
+                          }
+                          onClick={() => void generate()}
+                        >
+                          {previewOnly
+                            ? m['dance.coming_soon']()
+                            : paymentUnconfirmed
+                              ? m['dance.flow.pending']()
+                              : create.isPending || preparing
+                                ? t('checking')
+                                : !consent
+                                  ? m['dance.guide.consent']()
+                                  : !session.data?.user
+                                    ? m['dance.guide.signin']()
+                                    : quote?.canContinue
+                                      ? m['dance.flow.generate_one']()
+                                      : quote
+                                        ? m['dance.guide.charge']({
+                                            price: quotePrice(
+                                              selectedPlan.cents
+                                            ),
+                                          })
+                                        : m['dance.quote.check']()}{' '}
+                          <ArrowUpRight size={18} />
+                        </Button>
+
+                        {import.meta.env.DEV && settings.data?.simulation && (
+                          <small>{t('sandbox')}</small>
+                        )}
+                      </div>
+                    </div>
+                    <p className="dance-flow-footnote">
+                      {paymentUnconfirmed
+                        ? m['dance.flow.payment_safe']()
+                        : quote?.canContinue
+                          ? m['dance.flow.no_auto']()
+                          : m['dance.flow.login_next']()}
+                    </p>
+                    {error && (
+                      <p className="dance-error" role="alert">
+                        <AlertCircle size={16} />
+                        {error}
+                      </p>
+                    )}
+                  </div>
+                )}
+                <a className="dance-preview-link" href="#examples">
+                  <Play size={16} />
+                  {m['dance.examples.jump']()}
+                  <span aria-hidden="true">↓</span>
+                </a>
+              </div>
+
+              {(session.data?.user ||
+                create.isPending ||
+                submissionUnknown) && (
+                <section
+                  id="orders"
+                  className="dance-orders"
+                  aria-labelledby="dance-orders-title"
+                >
+                  <div className="dance-section-title">
+                    <h2 id="dance-orders-title">
+                      {t('orders')} <span>{jobs.data?.length ?? 0}</span>
+                    </h2>
+                    <button
+                      type="button"
+                      disabled={jobs.isFetching}
+                      onClick={() => void jobs.refetch()}
+                    >
+                      {m['dance.progress.refresh']()}
+                    </button>
+                  </div>
+                  {(create.isPending || submissionUnknown) && (
+                    <div className="dance-payment-review" role="status">
+                      <strong>
+                        {create.isPending
+                          ? m['dance.flow.submitting']()
+                          : m['dance.flow.submission_unknown']()}
+                      </strong>
+                      <p>{m['dance.flow.task_help']()}</p>
+                    </div>
                   )}
-                </div>
+                  {jobs.isError && (
+                    <div role="alert" className="dance-error">
+                      {t('loaderror')}{' '}
+                      <button onClick={() => jobs.refetch()}>
+                        {t('retry')}
+                      </button>
+                    </div>
+                  )}
+                  {jobs.isPending && <p role="status">{t('loading')}</p>}
+                  {jobs.data?.length === 0 && <p>{t('empty')}</p>}
+                  <div className="dance-results-grid" data-clarity-mask="true">
+                    {visibleJobs.map(renderJob)}
+                  </div>
+                  {historyJobs.length > 0 && (
+                    <details
+                      className="dance-video-history"
+                      open={showHistory}
+                      onToggle={(event) =>
+                        setShowHistory(event.currentTarget.open)
+                      }
+                    >
+                      <summary>
+                        {m['dance.result.history']({
+                          count: historyJobs.length,
+                        })}
+                      </summary>
+                      {showHistory && (
+                        <div
+                          className="dance-results-grid"
+                          data-clarity-mask="true"
+                        >
+                          {historyJobs.map(renderJob)}
+                        </div>
+                      )}
+                    </details>
+                  )}
+                </section>
               )}
-              <a className="dance-preview-link" href="#examples">
-                <Play size={16} />
-                {m['dance.examples.jump']()}
-                <span aria-hidden="true">↓</span>
-              </a>
             </div>
           </section>
         </div>
         <DanceSocialExamples />
-        {session.data?.user && (
-          <details
-            id="orders"
-            className="dance-orders"
-            open={showOrders}
-            onToggle={(event) => setShowOrders(event.currentTarget.open)}
-          >
-            <summary>
-              {t('orders')} <span>{jobs.data?.length ?? 0}</span>
-            </summary>
-            <div className="dance-section-title">
-              <span className="dance-muted">{t('restore')}</span>
-              <button
-                type="button"
-                disabled={jobs.isFetching}
-                onClick={() => void jobs.refetch()}
-              >
-                {m['dance.progress.refresh']()}
-              </button>
-            </div>
-            {jobs.isError && (
-              <div role="alert" className="dance-error">
-                {t('loaderror')}{' '}
-                <button onClick={() => jobs.refetch()}>{t('retry')}</button>
-              </div>
-            )}
-            {jobs.isPending && <p role="status">{t('loading')}</p>}
-            {jobs.data?.length === 0 && <p>{t('empty')}</p>}
-            <div className="dance-results-grid" data-clarity-mask="true">
-              {showOrders &&
-                jobs.data?.map((job) => (
-                  <article className="dance-order" key={job.id}>
-                    <div className="dance-result-meta">
-                      <span className="dance-chip">
-                        {job.status === 'deleted'
-                          ? m['dance.deleted']()
-                          : job.expired
-                            ? t('expired')
-                            : !job.simulation && job.status === 'succeeded'
-                              ? m['dance.resultready']()
-                              : t(`status.${job.status}`)}
-                      </span>
-                      <p className="dance-order-date">
-                        {new Date(job.createdAt * 1000).toLocaleString(
-                          getLocale() === 'zh' ? 'zh-CN' : 'en-US',
-                          {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          }
-                        )}
-                      </p>
-                      {!job.expired &&
-                        job.status !== 'deleted' &&
-                        typeof job.expiresAt === 'number' && (
-                          <p className="dance-order-date">
-                            {m['dance.download_deadline']({
-                              date: new Date(
-                                job.expiresAt * 1000
-                              ).toLocaleString(
-                                getLocale() === 'zh' ? 'zh-CN' : 'en-US',
-                                {
-                                  month: 'short',
-                                  day: 'numeric',
-                                  hour: 'numeric',
-                                  minute: '2-digit',
-                                }
-                              ),
-                            })}
-                          </p>
-                        )}
-                      {!job.expired &&
-                        job.status !== 'deleted' &&
-                        job.status === 'succeeded' && (
-                          <p className="dance-result-caption">
-                            {job.simulation
-                              ? t('mockresult')
-                              : job.resolution?.toLowerCase() || '480p'}
-                          </p>
-                        )}
-                      {(job.expired || job.status === 'deleted') && (
-                        <p>
-                          {job.status === 'deleted'
-                            ? m['dance.deletedinfo']()
-                            : t('expiredinfo')}{' '}
-                          <Link href="/contact">
-                            {m['settings.nav.tickets']()}
-                          </Link>
-                        </p>
-                      )}
-                      {['queued', 'generating', 'reconciling'].includes(
-                        job.status
-                      ) &&
-                        !job.expired && (
-                          <p role="status" className="dance-order-progress">
-                            <span className="dance-spinner" />
-                            {job.status === 'queued'
-                              ? m['dance.progress.queued']()
-                              : job.status === 'reconciling'
-                                ? m['dance.progress.reconciling']()
-                                : m['dance.progress.generating']()}
-                            <span>
-                              {m['dance.progress.elapsed']({
-                                minutes:
-                                  danceProgress(job, progressNow || Date.now())
-                                    ?.minutes ?? 0,
-                              })}
-                            </span>
-                          </p>
-                        )}
-                      {job.status === 'unpaid' && !job.expired && (
-                        <div className="dance-order-cast">
-                          {roles.map((role, i) => (
-                            <figure key={role}>
-                              <img
-                                src={`/api/dance/file?id=${job.id}&slot=${i}`}
-                                width="60"
-                                height="76"
-                                alt={t(role)}
-                              />
-                              <figcaption>{t(role)}</figcaption>
-                            </figure>
-                          ))}
-                        </div>
-                      )}
-                      {job.errorCode && (
-                        <p className="dance-error">
-                          {!job.simulation && job.status === 'failed'
-                            ? m['dance.realfailureinfo']()
-                            : t(
-                                job.status === 'reconciling'
-                                  ? 'reconcileinfo'
-                                  : 'failureinfo'
-                              )}
-                        </p>
-                      )}
-                      {['queued', 'generating', 'reconciling'].includes(
-                        job.status
-                      ) &&
-                        !job.expired &&
-                        danceProgress(job, progressNow || Date.now())
-                          ?.delayed && (
-                          <p className="dance-muted" role="status">
-                            {m['dance.delivery.wait']()}{' '}
-                            {m['dance.progress.safe']()}{' '}
-                            <Link href="/contact">{t('support')}</Link>
-                          </p>
-                        )}
-                    </div>
-                    {job.status === 'succeeded' && !job.expired && (
-                      <div className="dance-result-media">
-                        <DanceVideo
-                          src={`/api/dance/file?id=${job.id}&slot=video`}
-                          label={
-                            job.simulation
-                              ? t('mockresult')
-                              : m['dance.realresult']()
-                          }
-                          diagnose={() =>
-                            qc.fetchQuery({
-                              queryKey: ['dance-video-status', job.id],
-                              queryFn: () => readDanceVideoState(job.id),
-                              staleTime: 0,
-                              retry: false,
-                            })
-                          }
-                          errorLabels={{
-                            authentication_required:
-                              m['dance.video.auth_required'](),
-                            video_network: m['dance.video.network'](),
-                            video_decode: m['dance.video.decode'](),
-                            video_unsupported: m['dance.video.decode'](),
-                            video_missing: m['dance.video.missing'](),
-                            video_expired: m['dance.video.expired'](),
-                            video_not_ready: m['dance.video.not_ready'](),
-                            video_unavailable: m['dance.video.unavailable'](),
-                          }}
-                          signIn={{
-                            href: localizeHref(
-                              '/sign-in?callbackUrl=%2F%23orders'
-                            ),
-                            label: m['common.sign.sign_in_title'](),
-                          }}
-                          onRetry={() =>
-                            trackDance('dance_video_retry', {
-                              stage: 'result',
-                              resolution: job.resolution,
-                            })
-                          }
-                          onRecovered={() =>
-                            trackDance('dance_video_recovered', {
-                              stage: 'result',
-                              resolution: job.resolution,
-                            })
-                          }
-                          onPlaybackError={(reason) =>
-                            trackDance('dance_video_failed', {
-                              stage: 'result',
-                              reason,
-                              simulation: job.simulation,
-                              resolution: job.resolution,
-                            })
-                          }
-                          errorLabel={t('videoerror')}
-                          retryLabel={t('retry')}
-                          openLabel={t('openvideo')}
-                        />
-                        <a
-                          onClick={() =>
-                            trackDance('dance_download_clicked', {
-                              simulation: job.simulation,
-                              resolution: job.resolution,
-                              payment_mode: job.paymentMode,
-                            })
-                          }
-                          className="dance-download"
-                          href={`/api/dance/file?id=${job.id}&slot=video&download=1`}
-                        >
-                          {job.simulation
-                            ? t('download')
-                            : m['dance.downloadreal']()}
-                        </a>
-                        <a
-                          className="dance-another-link"
-                          href="#studio"
-                          onClick={() =>
-                            trackDance('dance_make_another_clicked', {
-                              resolution: job.resolution,
-                            })
-                          }
-                        >
-                          {m['dance.result.another']()}
-                        </a>
-                      </div>
-                    )}
-                    {orderError?.id === job.id && (
-                      <p className="dance-error" role="alert">
-                        {orderError.message}
-                      </p>
-                    )}
-                    <div className="dance-order-actions">
-                      <button
-                        disabled={action.isPending || !!job.supportRequested}
-                        onClick={() =>
-                          action.mutate({ id: job.id, action: 'support' })
-                        }
-                      >
-                        {t(job.supportRequested ? 'requested' : 'support')}
-                      </button>
-                      {job.status !== 'deleted' && (
-                        <button
-                          disabled={action.isPending}
-                          onClick={() => {
-                            setOrderError(null);
-                            setDeleteTarget(job.id);
-                          }}
-                        >
-                          {t('delete')}
-                        </button>
-                      )}
-                    </div>
-                  </article>
-                ))}
-            </div>
-          </details>
-        )}
 
         <DanceTrend />
         {!paymentUnconfirmed && (
@@ -1695,7 +1856,13 @@ export function DanceStudio() {
         {loginOpen && (
           <DanceDialog
             open={loginOpen}
-            onOpenChange={setLoginOpen}
+            onOpenChange={(open) => {
+              setLoginOpen(open);
+              if (!open) {
+                clearDanceLoginIntent();
+                setLoginToken(null);
+              }
+            }}
             className="dance-auth-dialog"
             title={m['dance.logintitle']()}
             description={m['dance.loginbody']()}
@@ -1706,7 +1873,9 @@ export function DanceStudio() {
                 returnTo={
                   paymentReturn
                     ? '/?resume=1&payment=review#studio'
-                    : '/?resume=1#studio'
+                    : loginToken
+                      ? `/?resume=1&continueGeneration=${loginToken}#studio`
+                      : '/?resume=1#studio'
                 }
               />
             </Suspense>
@@ -1778,7 +1947,9 @@ export function DanceAdmin() {
   return (
     <section className="p-6">
       <h1 className="mb-6 text-2xl">{t('orders')}</h1>
-      {settings.data?.simulation && <p>{t('sandbox')}</p>}
+      {import.meta.env.DEV && settings.data?.simulation && (
+        <p>{t('sandbox')}</p>
+      )}
       {query.isError && <p role="alert">{query.error.message}</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">

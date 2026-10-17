@@ -2350,3 +2350,50 @@
   padding-top: 12px;
   margin-top: 10px;
 }
+
+#studio-task {
+  scroll-margin-top: 90px;
+  border-color: #d3f56b;
+}
+#studio-task > strong {
+  display: block;
+  margin-top: 12px;
+  color: #d3f56b;
+  font-size: 18px;
+}
+#studio-task > a {
+  margin: 12px 12px 12px 0;
+}
+#studio-task > button {
+  display: block;
+  margin-top: 16px;
+}
+.dance-task-count {
+  border-radius: 999px;
+  background: #d3f56b;
+  color: #171b10;
+  min-width: 20px;
+  text-align: center;
+  font-size: 12px;
+}
+
+#orders {
+  scroll-margin-top: 88px;
+}
+.dance-input-panel .dance-orders {
+  margin-top: 24px;
+  padding: 16px;
+}
+.dance-input-panel .dance-results-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.dance-video-history {
+  margin-top: 20px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+.dance-video-history > summary {
+  cursor: pointer;
+  color: var(--muted);
+  margin-bottom: 16px;
+}

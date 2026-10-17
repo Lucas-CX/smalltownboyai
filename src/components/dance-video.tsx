@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { loadPrivateVideoBlob } from '@/lib/dance-video-blob';
 import { startDancePreview } from '@/lib/dance-video-preview';
 import {
   videoFailureFromState,
@@ -7,6 +8,7 @@ import {
   type VideoFailureReason,
   type VideoFileState,
 } from '@/lib/dance-video-state';
+import { inlineVideoProps } from '@/lib/inline-video';
 
 type Props = {
   src: string;
@@ -43,7 +45,7 @@ export function DanceVideo({
   openLabel,
   poster,
   lazyPoster = false,
-  pauseWhenOffscreen = false,
+  pauseWhenOffscreen = true,
   autoPreview = false,
   previewLabels,
   className,
@@ -66,6 +68,9 @@ export function DanceVideo({
   const [attempt, setAttempt] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [silent, setSilent] = useState(true);
+  const [fallback, setFallback] = useState<{ src: string; url: string }>();
+  const fallbackRequest = useRef<AbortController | null>(null);
+  const fallbackTried = useRef(false);
   const video = useRef<HTMLVideoElement>(null);
   const request = useRef(0);
   const recovering = useRef(false);
@@ -97,13 +102,21 @@ export function DanceVideo({
   }, [autoPreview, src, attempt]);
   useEffect(() => {
     request.current++;
+    fallbackTried.current = false;
+    setFallback(undefined);
     recovering.current = false;
     setFailure(undefined);
     setChecking(false);
     return () => {
       request.current++;
+      fallbackRequest.current?.abort();
     };
   }, [src]);
+  useEffect(() => {
+    return () => {
+      if (fallback) URL.revokeObjectURL(fallback.url);
+    };
+  }, [fallback]);
   useEffect(() => {
     if (!lazyPoster || posterVisible) return;
     if (!('IntersectionObserver' in window)) {
@@ -123,18 +136,23 @@ export function DanceVideo({
     return () => observer.disconnect();
   }, [lazyPoster, posterVisible, attempt]);
   useEffect(() => {
-    if (!pauseWhenOffscreen || !('IntersectionObserver' in window)) return;
+    if (
+      autoPreview ||
+      !pauseWhenOffscreen ||
+      !('IntersectionObserver' in window)
+    )
+      return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((entry) => entry.intersectionRatio < 0.5)) {
+        if (entries.some((entry) => !entry.isIntersecting)) {
           video.current?.pause();
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0 }
     );
     if (video.current) observer.observe(video.current);
     return () => observer.disconnect();
-  }, [pauseWhenOffscreen, attempt]);
+  }, [autoPreview, pauseWhenOffscreen, src, attempt]);
   return (
     <>
       {title && (
@@ -167,12 +185,12 @@ export function DanceVideo({
         width={width}
         height={height}
         controls
-        playsInline
+        {...inlineVideoProps}
         preload={preload ?? (reference ? 'none' : 'metadata')}
         muted={autoPreview || reference}
         loop={autoPreview || reference}
         poster={!lazyPoster || posterVisible ? poster : undefined}
-        src={src}
+        src={fallback?.src === src ? fallback.url : src}
         aria-label={label}
         hidden={!!failure}
         onPause={() => setPlaying(false)}
@@ -205,7 +223,33 @@ export function DanceVideo({
           let reason = media;
           if (diagnose) {
             try {
-              reason = videoFailureFromState(media, await diagnose());
+              const state = await diagnose();
+              reason = videoFailureFromState(media, state);
+              if (current !== request.current) return;
+              if (
+                state === 'ready' &&
+                !fallbackTried.current &&
+                (media === 'video_network' || media === 'video_unsupported')
+              ) {
+                fallbackTried.current = true;
+                const controller = new AbortController();
+                fallbackRequest.current = controller;
+                const timeout = window.setTimeout(
+                  () => controller.abort(),
+                  30_000
+                );
+                let blob: Blob;
+                try {
+                  blob = await loadPrivateVideoBlob(src, controller.signal);
+                } finally {
+                  window.clearTimeout(timeout);
+                }
+                if (current !== request.current) return;
+                setFallback({ src, url: URL.createObjectURL(blob) });
+                setFailure(undefined);
+                setChecking(false);
+                return;
+              }
             } catch {
               reason = 'video_network';
             }
@@ -252,6 +296,7 @@ export function DanceVideo({
                 disabled={checking}
                 onClick={() => {
                   request.current++;
+                  fallbackRequest.current?.abort();
                   setFailure(undefined);
                   setAttempt((v) => v + 1);
                   onRetry?.();

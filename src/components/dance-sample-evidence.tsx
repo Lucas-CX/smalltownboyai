@@ -1,4 +1,5 @@
 import { danceTrendPreview } from '@/lib/dance-media';
+import { inlineVideoProps } from '@/lib/inline-video';
 
 export function DanceSampleEvidence({
   roleA,
@@ -31,7 +32,7 @@ export function DanceSampleEvidence({
       <figure>
         <video
           controls
-          playsInline
+          {...inlineVideoProps}
           preload="none"
           poster={danceTrendPreview.poster}
           width={danceTrendPreview.width}

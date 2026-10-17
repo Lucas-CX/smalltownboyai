@@ -1,3 +1,5 @@
+import { inlineVideoProps } from '@/lib/inline-video';
+
 type SocialVideo = {
   id: string;
   title: string;
@@ -20,7 +22,7 @@ export function SocialVideoGallery({
             src={item.videoSrc}
             poster={item.poster}
             controls
-            playsInline
+            {...inlineVideoProps}
             preload="none"
             aria-label={item.title}
           />

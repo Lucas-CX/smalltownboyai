@@ -14,6 +14,7 @@ import {
 import { owned, requireSandbox } from '@/modules/dance/service';
 import type { VideoFileState } from '@/lib/dance-video-state';
 import { respData, respErr } from '@/lib/resp';
+import { videoByteRange } from '@/lib/video-byte-range';
 
 async function GET({ request }: { request: Request }) {
   const q = new URL(request.url).searchParams;
@@ -82,22 +83,19 @@ async function GET({ request }: { request: Request }) {
       'Accept-Ranges': 'bytes',
       'Content-Disposition': `${q.has('download') ? 'attachment' : 'inline'}; filename="${isVideo ? (job.generationMode === 'kie' ? 'generated-video.mp4' : 'SIMULATION-NOT-AI.mp4') : 'photo.jpg'}"`,
     };
-    const range = request.headers.get('range');
+    const range = videoByteRange(request.headers.get('range'), bytes.length);
+    if (range === null) {
+      return new Response(null, {
+        status: 416,
+        headers: {
+          ...headers,
+          'Content-Length': '0',
+          'Content-Range': `bytes */${bytes.length}`,
+        },
+      });
+    }
     if (range) {
-      const match = /^bytes=(\d+)-(\d*)$/.exec(range);
-      const start = match ? Number(match[1]) : -1;
-      const end = match?.[2]
-        ? Math.min(Number(match[2]), bytes.length - 1)
-        : bytes.length - 1;
-      if (start < 0 || start >= bytes.length || end < start)
-        return new Response(null, {
-          status: 416,
-          headers: {
-            ...headers,
-            'Content-Length': '0',
-            'Content-Range': `bytes */${bytes.length}`,
-          },
-        });
+      const { start, end } = range;
       return new Response(bytes.subarray(start, end + 1), {
         status: 206,
         headers: {
