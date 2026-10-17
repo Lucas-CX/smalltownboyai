@@ -134,6 +134,6 @@ export default defineConfig({
       srcDirectory: 'src',
     }),
     viteReact(),
-    nitro(),
+    nitro({ plugins: ['./src/plugins/dance-recovery.ts'] }),
   ],
 });

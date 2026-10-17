@@ -988,7 +988,7 @@
   "dance.acceptancequality": "This acceptance test is approved for 480p, 20 seconds, with AI-generated audio. Higher resolutions are not enabled for paid testing.",
   "dance.downloadreal": "Download video",
   "dance.resultready": "Your video is ready",
-  "dance.realfailureinfo": "The provider could not complete this video. Generation credits are restored automatically after a confirmed failure. Contact support below; do not submit again while a task is being checked.",
+  "dance.realfailureinfo": "This video could not be delivered. Its generation credits are restored automatically. Contact support below; do not submit again while a task is being checked.",
   "dance.continuepurchase": "Choose a pack to make your video",
   "dance.savedcast": "After payment is confirmed, return to this tab. Your saved, confirmed photos resume generation if the draft is still available. If it has expired, choose your photos again.",
   "dance.paygenerate": "Pay & generate",

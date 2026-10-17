@@ -21,6 +21,7 @@ import { KieDanceClient } from '@/core/ai/dance-kie';
 import { downloadDanceResultStream } from '@/core/ai/dance-result';
 import { DancePreSubmissionError } from '@/core/ai/dance-submission';
 import { cloudDanceEnabled } from '@/core/cloudflare/dance';
+import { DANCE_PREPARATION_SECONDS } from '@/core/cloudflare/dance-recovery';
 import { db } from '@/core/db';
 import { completeDanceCast } from '@/core/storage/dance-default-cast';
 import {
@@ -218,7 +219,7 @@ export async function erase(userId: string, id: string, expired = false) {
 export type DanceRunScope = {
   userId?: string;
   jobId?: string;
-  reason?: 'submit' | 'refresh' | 'callback';
+  reason?: 'submit' | 'refresh' | 'callback' | 'recovery';
 };
 export async function tick(kieKey?: string, scope: DanceRunScope = {}) {
   requireSandbox();
@@ -274,12 +275,9 @@ export async function tick(kieKey?: string, scope: DanceRunScope = {}) {
           // Completion notifications bypass ordinary polling backoff, never an
           // active transfer lease (which is set to 180 seconds).
           scope.reason === 'callback'
-            ? and(
-                lte(danceJob.nextRunAt, now() + 30),
-                or(
-                  isNull(danceJob.errorCode),
-                  ne(danceJob.errorCode, 'RESULT_PROCESSING')
-                )
+            ? or(
+                isNull(danceJob.errorCode),
+                ne(danceJob.errorCode, 'RESULT_PROCESSING')
               )
             : undefined
         )
@@ -291,14 +289,15 @@ export async function tick(kieKey?: string, scope: DanceRunScope = {}) {
     if (job.generationMode === 'kie') {
       if (!kieKey) continue;
       if (job.status === 'queued' && !job.providerId) {
-        if (scope.reason === 'callback') continue;
+        if (scope.reason === 'callback' || scope.reason === 'recovery')
+          continue;
         // 'reconciling' without providerId is a durable submission claim; never submit again.
         const claimed = await db()
           .update(danceJob)
           .set({
             status: 'reconciling',
-            errorCode: 'SUBMISSION_IN_PROGRESS',
-            nextRunAt: now() + 120,
+            errorCode: 'SUBMISSION_PREPARING',
+            nextRunAt: now() + DANCE_PREPARATION_SECONDS,
           })
           .where(and(eq(danceJob.id, job.id), eq(danceJob.status, 'queued')))
           .returning();
@@ -311,7 +310,7 @@ export async function tick(kieKey?: string, scope: DanceRunScope = {}) {
               providerId,
               status: 'generating',
               errorCode: null,
-              nextRunAt: now() + 15,
+              nextRunAt: now() + 300,
             })
             .where(
               and(
@@ -395,15 +394,24 @@ export async function tick(kieKey?: string, scope: DanceRunScope = {}) {
       let saved: string | null = null;
       let phase: 'status' | 'download' | 'storage' | 'persist' = 'status';
       try {
-        const result = await new KieDanceClient(kieKey).status(job.providerId);
+        const result = await new KieDanceClient(kieKey).status(
+          job.providerId,
+          scope.reason === 'recovery' ? 8000 : 30000
+        );
         if (result.state === 'success') {
           phase = 'download';
           if (cloudDanceEnabled()) {
-            const media = await downloadDanceResultStream(result.urls[0]);
+            const media = await downloadDanceResultStream(
+              result.urls[0],
+              scope.reason === 'recovery' ? 20000 : 120000
+            );
             phase = 'storage';
             saved = await savePrivateStream(media.body, media.byteLength);
           } else {
-            const media = await downloadDanceResult(result.urls[0]);
+            const media = await downloadDanceResult(
+              result.urls[0],
+              scope.reason === 'recovery' ? 20000 : 120000
+            );
             phase = 'storage';
             saved = await savePrivate(media);
           }
@@ -427,7 +435,7 @@ export async function tick(kieKey?: string, scope: DanceRunScope = {}) {
               result.creditsConsumed === null
                 ? null
                 : Math.ceil(result.creditsConsumed / 2),
-            nextRunAt: now() + 15,
+            nextRunAt: now() + 300,
           })
           .where(
             and(
@@ -460,7 +468,7 @@ export async function tick(kieKey?: string, scope: DanceRunScope = {}) {
               storage: 'RESULT_STORAGE_PENDING',
               persist: 'RESULT_PERSIST_PENDING',
             }[phase],
-            nextRunAt: now() + 30,
+            nextRunAt: now() + 300,
           })
           .where(
             and(

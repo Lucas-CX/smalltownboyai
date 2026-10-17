@@ -1,5 +1,6 @@
 import { danceD1 } from '@/core/cloudflare/dance';
 import { assertLiveDancePayment } from '@/core/cloudflare/dance-ledger';
+import { claimCloudDanceSubmission } from '@/core/cloudflare/dance-recovery';
 import { readDanceReference, readPrivate } from '@/core/storage/dance-private';
 import { isDanceResolution } from '@/lib/dance-settings';
 import { danceTemplate } from '@/lib/dance-template';
@@ -149,6 +150,7 @@ export async function submitRealDance(
     await stage('submitting-generation');
     if (!isDanceResolution(job.resolution))
       throw new Error('Invalid resolution');
+    await claimCloudDanceSubmission(job.id, job.userId);
     submissionPossible = true;
     return await client.submit(images, reference, job.resolution, callbackUrl);
   } catch (error) {

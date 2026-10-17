@@ -5,6 +5,9 @@
       "@/core/ai/dance-acceptance": [
         "../src/core/ai/dance-acceptance.workers.ts"
       ],
+      "@/core/storage/dance-private": [
+        "../src/core/storage/dance-private.workers.ts"
+      ],
       "@/*": ["../src/*"]
     }
   }

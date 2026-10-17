@@ -988,7 +988,7 @@
   "dance.acceptancequality": "本轮测试批准 480p、20 秒及模型原生音频，更高分辨率尚未启用付费测试。",
   "dance.downloadreal": "下载视频",
   "dance.resultready": "视频已完成",
-  "dance.realfailureinfo": "供应商未能完成视频。确认失败后，生成积分会自动退回。可通过下方联系支持；任务查询期间请勿重复提交。",
+  "dance.realfailureinfo": "本次视频未能交付，扣除的生成积分会自动退回。可通过下方联系支持；任务查询期间请勿重复提交。",
   "dance.continuepurchase": "选择次数包，继续制作视频",
   "dance.savedcast": "付款确认后返回当前标签页。已保存并确认的照片若仍有效，会自动继续生成；草稿已失效时，请重新选择照片。",
   "dance.paygenerate": "付款并生成",

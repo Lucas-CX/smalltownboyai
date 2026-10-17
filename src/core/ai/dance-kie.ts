@@ -146,9 +146,11 @@ export class KieDanceClient {
       throw new Error('Submission outcome unknown; reconcile in Kie Logs');
     return data.taskId as string;
   }
-  async status(taskId: string) {
+  async status(taskId: string, timeoutMs = 30000) {
     const data = await this.call(
-      `jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`
+      `jobs/recordInfo?taskId=${encodeURIComponent(taskId)}`,
+      undefined,
+      timeoutMs
     );
     if (
       !['waiting', 'queuing', 'generating', 'success', 'fail'].includes(

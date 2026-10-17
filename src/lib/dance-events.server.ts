@@ -2,6 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 
 import { danceCallbackUrl } from '@/core/ai/dance-callback';
 import { DANCE_MODEL, KieDanceClient } from '@/core/ai/dance-kie';
+import { recoverCloudDanceJob } from '@/core/cloudflare/dance-recovery';
 import { db } from '@/core/db';
 import { danceJob } from '@/config/db/schema';
 import { restoreFailedDanceCredits } from '@/modules/ai-tasks/service';
@@ -14,8 +15,9 @@ export async function advanceDanceJobs(
   scope: DanceRunScope & { userId: string }
 ) {
   if (process.env.VITE_PREVIEW_ONLY === 'true') return;
-  const config = await getAllConfigs();
   try {
+    if (scope.jobId) await recoverCloudDanceJob(scope.userId, scope.jobId);
+    const config = await getAllConfigs();
     await tick(config.kie_api_key, scope);
   } finally {
     await restoreFailedDanceCredits(scope);

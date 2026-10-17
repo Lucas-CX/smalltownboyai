@@ -15,10 +15,13 @@ function resultUrl(value: string) {
   return url;
 }
 
-export async function downloadDanceResultStream(value: string) {
+export async function downloadDanceResultStream(
+  value: string,
+  timeoutMs = 120000
+) {
   const response = await fetch(resultUrl(value), {
     redirect: 'manual',
-    signal: AbortSignal.timeout(120000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!response.ok || !response.body) throw new Error('Result download failed');
   const byteLength = Number(response.headers.get('content-length'));
@@ -80,12 +83,12 @@ export async function downloadDanceResultStream(value: string) {
   return { body, byteLength };
 }
 
-export async function downloadDanceResult(value: string) {
+export async function downloadDanceResult(value: string, timeoutMs = 120000) {
   const url = resultUrl(value);
   const response = await fetch(url, {
     // Workers supports manual/follow; reject 3xx via response.ok below.
     redirect: 'manual',
-    signal: AbortSignal.timeout(120000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!response.ok || !response.body) throw new Error('Result download failed');
   const reader = response.body.getReader();

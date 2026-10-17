@@ -165,7 +165,7 @@ export async function restoreCloudDance(
         .bind(id, job.user_id),
       d1
         .prepare(
-          "UPDATE dance_job SET payment_mode='credits-restored' WHERE id=? AND status='failed' AND payment_mode IN ('credits-test','credits-live')"
+          "UPDATE dance_job SET payment_mode='credits-restored',next_run_at=9999999999 WHERE id=? AND status='failed' AND payment_mode IN ('credits-test','credits-live')"
         )
         .bind(job.id),
     ]);
