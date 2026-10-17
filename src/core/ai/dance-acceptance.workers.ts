@@ -6,6 +6,7 @@ import { danceTemplate } from '@/lib/dance-template';
 
 import { danceCallbackUrl } from './dance-callback';
 import { DANCE_PROMPT_VERSION, KieDanceClient } from './dance-kie';
+import { DancePreSubmissionError } from './dance-submission';
 
 export { downloadDanceResult } from './dance-result';
 
@@ -39,103 +40,119 @@ export async function submitRealDance(
   job: { id: string; userId: string; resolution: string; photos: string },
   key: string
 ) {
-  const callbackUrl = danceCallbackUrl(job.id);
-  const photos: unknown = JSON.parse(job.photos);
-  if (
-    !Array.isArray(photos) ||
-    photos.length !== 2 ||
-    !photos.every((photo) => typeof photo === 'string' && photo.length > 0)
-  )
-    throw new Error('Exactly two role photos required');
-  const permit = await realDancePermit(job.userId, job.resolution);
-  if (!permit || !key) throw new Error('Real generation unavailable');
-  if (permit.live) await assertLiveDancePayment(job.id, job.userId);
-  const claimKey = permit.live
-    ? `dance-live-submit:${job.id}`
-    : `dance-permit:${permit.id}`;
-  const client = new KieDanceClient(key);
-  // The provider enforces the current resolution-specific price at submission.
-  if ((await client.balance()) <= 0)
-    throw new Error('Insufficient provider balance');
-  const claimed = await danceD1()
-    .prepare(
-      'INSERT INTO config(name,value) VALUES (?,?) ON CONFLICT(name) DO NOTHING RETURNING name'
+  let phase = 'VALIDATION';
+  let submissionPossible = false;
+  try {
+    const callbackUrl = danceCallbackUrl(job.id);
+    const photos: unknown = JSON.parse(job.photos);
+    if (
+      !Array.isArray(photos) ||
+      photos.length !== 2 ||
+      !photos.every((photo) => typeof photo === 'string' && photo.length > 0)
     )
-    .bind(
-      claimKey,
-      JSON.stringify({
-        jobId: job.id,
-        at: Date.now(),
-        templateVersion: danceTemplate.version,
-        promptVersion: DANCE_PROMPT_VERSION,
-      })
-    )
-    .first();
-  if (!claimed) throw new Error('Permit consumed');
-  const stage = async (value: string) => {
-    await danceD1()
-      .prepare('UPDATE config SET value=? WHERE name=?')
+      throw new Error('Exactly two role photos required');
+    const permit = await realDancePermit(job.userId, job.resolution);
+    if (!permit || !key) throw new Error('Real generation unavailable');
+    if (permit.live) await assertLiveDancePayment(job.id, job.userId);
+    const claimKey = permit.live
+      ? `dance-live-submit:${job.id}`
+      : `dance-permit:${permit.id}`;
+    const client = new KieDanceClient(key);
+    phase = 'BALANCE';
+    // The provider enforces the current resolution-specific price at submission.
+    if ((await client.balance()) <= 0)
+      throw new Error('Insufficient provider balance');
+    // An existing claim may belong to an earlier paid submission. A failed or
+    // ambiguous claim write must never authorize automatic credit restoration.
+    submissionPossible = true;
+    const claimed = await danceD1()
+      .prepare(
+        'INSERT INTO config(name,value) VALUES (?,?) ON CONFLICT(name) DO NOTHING RETURNING name'
+      )
       .bind(
+        claimKey,
         JSON.stringify({
           jobId: job.id,
           at: Date.now(),
-          stage: value,
           templateVersion: danceTemplate.version,
           promptVersion: DANCE_PROMPT_VERSION,
-        }),
-        claimKey
+        })
       )
-      .run();
-  };
-  const images: string[] = [];
-  for (const photo of photos as string[]) {
-    await stage(`reading-photo-${images.length + 1}`);
-    const form = new FormData();
-    form.append(
-      'file',
-      new Blob([await readPrivate(photo)], { type: 'image/jpeg' }),
-      `${crypto.randomUUID()}.jpg`
-    );
-    form.append('uploadPath', `dance/${job.id}`);
-    await stage(`uploading-photo-${images.length + 1}`);
-    const response = await fetch(
-      'https://kieai.redpandaai.co/api/file-stream-upload',
-      {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${key}` },
-        body: form,
-        // Workers rejects redirect:'error' for this upload. Inspect any redirect
-        // as a non-2xx response instead; never forward the key to another host.
-        redirect: 'manual',
-        signal: AbortSignal.timeout(60000),
-      }
-    ).catch(async (error: unknown) => {
-      const message = error instanceof Error ? error.message : '';
-      const category = /redirect/i.test(message)
-        ? 'redirect'
-        : /length/i.test(message)
-          ? 'content-length'
-          : /timeout/i.test(message)
-            ? 'timeout'
-            : /invocation/i.test(message)
-              ? 'receiver'
-              : 'network';
-      await stage(`upload-error-${category}`);
-      throw new Error('Provider upload failed');
-    });
-    await stage(`upload-http-${response.status}`);
-    if (!response.ok)
-      throw new Error(`Provider upload HTTP ${response.status}`);
-    const value = (await response.json()) as any;
-    if (value.code !== 200 || typeof value.data?.downloadUrl !== 'string')
-      throw new Error('Provider upload failed');
-    images.push(value.data.downloadUrl);
+      .first();
+    if (!claimed) throw new Error('Permit consumed');
+    submissionPossible = false;
+    phase = 'PHOTO_UPLOAD';
+    const stage = async (value: string) => {
+      await danceD1()
+        .prepare('UPDATE config SET value=? WHERE name=?')
+        .bind(
+          JSON.stringify({
+            jobId: job.id,
+            at: Date.now(),
+            stage: value,
+            templateVersion: danceTemplate.version,
+            promptVersion: DANCE_PROMPT_VERSION,
+          }),
+          claimKey
+        )
+        .run();
+    };
+    const images: string[] = [];
+    for (const photo of photos as string[]) {
+      await stage(`reading-photo-${images.length + 1}`);
+      const form = new FormData();
+      form.append(
+        'file',
+        new Blob([await readPrivate(photo)], { type: 'image/jpeg' }),
+        `${crypto.randomUUID()}.jpg`
+      );
+      form.append('uploadPath', `dance/${job.id}`);
+      await stage(`uploading-photo-${images.length + 1}`);
+      const response = await fetch(
+        'https://kieai.redpandaai.co/api/file-stream-upload',
+        {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${key}` },
+          body: form,
+          // Workers rejects redirect:'error' for this upload. Inspect any redirect
+          // as a non-2xx response instead; never forward the key to another host.
+          redirect: 'manual',
+          signal: AbortSignal.timeout(60000),
+        }
+      ).catch(async (error: unknown) => {
+        const message = error instanceof Error ? error.message : '';
+        const category = /redirect/i.test(message)
+          ? 'redirect'
+          : /length/i.test(message)
+            ? 'content-length'
+            : /timeout/i.test(message)
+              ? 'timeout'
+              : /invocation/i.test(message)
+                ? 'receiver'
+                : 'network';
+        await stage(`upload-error-${category}`);
+        throw new Error('Provider upload failed');
+      });
+      await stage(`upload-http-${response.status}`);
+      if (!response.ok)
+        throw new Error(`Provider upload HTTP ${response.status}`);
+      const value = (await response.json()) as any;
+      if (value.code !== 200 || typeof value.data?.downloadUrl !== 'string')
+        throw new Error('Provider upload failed');
+      images.push(value.data.downloadUrl);
+    }
+    await stage('uploading-video-reference');
+    phase = 'REFERENCE_UPLOAD';
+    const reference = await client.uploadReference(await readDanceReference());
+    // Persist the boundary before the only paid call. An ambiguous outcome after
+    // this point must be reconciled in provider logs, never automatically retried.
+    await stage('submitting-generation');
+    if (!isDanceResolution(job.resolution))
+      throw new Error('Invalid resolution');
+    submissionPossible = true;
+    return await client.submit(images, reference, job.resolution, callbackUrl);
+  } catch (error) {
+    if (!submissionPossible) throw new DancePreSubmissionError(phase);
+    throw error;
   }
-  await stage('uploading-video-reference');
-  const reference = await client.uploadReference(await readDanceReference());
-  // Persist the boundary before the only paid call. An ambiguous outcome after
-  // this point must be reconciled in provider logs, never automatically retried.
-  await stage('submitting-generation');
-  if (!isDanceResolution(job.resolution)) throw new Error('Invalid resolution');
-  return client.submit(images, reference, job.resolution, callbackUrl);
 }

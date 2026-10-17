@@ -101,7 +101,7 @@ export class KieDanceClient {
       throw new Error('Invalid reference upload URL');
     return { url: url.href, durationSeconds: danceTemplate.durationSeconds };
   }
-  private async call(path: string, body?: unknown) {
+  private async call(path: string, body?: unknown, timeoutMs = 30_000) {
     const response = await this.transport(`https://api.kie.ai/api/v1/${path}`, {
       method: body ? 'POST' : 'GET',
       headers: {
@@ -109,7 +109,7 @@ export class KieDanceClient {
         'Content-Type': 'application/json',
       },
       body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(30_000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) throw new Error(`Kie HTTP ${response.status}`);
     const result = await response.json();
@@ -118,7 +118,16 @@ export class KieDanceClient {
   }
   // Never retry submission automatically: a timeout may hide an accepted task.
   async balance() {
-    const value = await this.call('chat/credit');
+    // Only this read-only preflight can retry. Keep its total timeout below
+    // the Workers post-response execution window; never retry createTask.
+    let value: unknown;
+    try {
+      value = await this.call('chat/credit', undefined, 8_000);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '';
+      if (/^Kie (HTTP|error) [34]\d\d$/.test(message)) throw error;
+      value = await this.call('chat/credit', undefined, 8_000);
+    }
     if (typeof value !== 'number')
       throw new Error('Provider balance unavailable');
     return value;

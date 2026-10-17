@@ -19,6 +19,7 @@ import {
 } from '@/core/ai/dance-acceptance';
 import { KieDanceClient } from '@/core/ai/dance-kie';
 import { downloadDanceResultStream } from '@/core/ai/dance-result';
+import { DancePreSubmissionError } from '@/core/ai/dance-submission';
 import { cloudDanceEnabled } from '@/core/cloudflare/dance';
 import { db } from '@/core/db';
 import { completeDanceCast } from '@/core/storage/dance-default-cast';
@@ -320,6 +321,31 @@ export async function tick(kieKey?: string, scope: DanceRunScope = {}) {
               )
             );
         } catch (error) {
+          if (error instanceof DancePreSubmissionError) {
+            // Proven pre-submit failure: no provider task exists. The route
+            // orchestrator restores this job's recorded debit in its finally.
+            await db()
+              .update(danceJob)
+              .set({
+                status: 'failed',
+                errorCode: error.message,
+                providerCostCents: 0,
+                supportRequested: 1,
+              })
+              .where(
+                and(
+                  eq(danceJob.id, job.id),
+                  eq(danceJob.status, 'reconciling'),
+                  isNull(danceJob.providerId)
+                )
+              );
+            await recordResourceFunnel(
+              'server_generation_failed',
+              job.id,
+              job.userId
+            );
+            continue;
+          }
           // Keep provider payloads and credentials out of logs. These fixed
           // preflight errors identify failures before a paid submission.
           const message = error instanceof Error ? error.message : '';

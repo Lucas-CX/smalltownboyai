@@ -1,0 +1,11 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "@/core/ai/dance-acceptance": [
+        "../src/core/ai/dance-acceptance.workers.ts"
+      ],
+      "@/*": ["../src/*"]
+    }
+  }
+}

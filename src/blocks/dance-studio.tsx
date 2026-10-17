@@ -1512,6 +1512,10 @@ export function DanceStudio() {
 }
 
 export function DanceAdmin() {
+  const settings = useQuery({
+    queryKey: ['dance-settings'],
+    queryFn: () => apiGet<{ simulation: boolean }>('/api/dance/settings'),
+  });
   const query = useQuery({
     queryKey: ['admin-dance'],
     queryFn: () => apiGet<Job[]>('/api/admin/dance'),
@@ -1520,7 +1524,7 @@ export function DanceAdmin() {
   return (
     <section className="p-6">
       <h1 className="mb-6 text-2xl">{t('orders')}</h1>
-      <p>{t('sandbox')}</p>
+      {settings.data?.simulation && <p>{t('sandbox')}</p>}
       {query.isError && <p role="alert">{query.error.message}</p>}
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
