@@ -11,6 +11,7 @@ import {
 import { dancePageSeo } from '@/lib/dance-seo';
 import { m } from '@/paraglide/messages.js';
 import { baseLocale, getLocale } from '@/paraglide/runtime.js';
+import { DanceGuideCta } from '@/blocks/dance-guide-cta';
 
 type PageModule = {
   default: ComponentType;
@@ -34,6 +35,7 @@ type LoaderData = {
   meta: PageModule['meta'];
   key: string;
   locale: ReturnType<typeof getLocale>;
+  guide: boolean;
 };
 export function staticPageRouteOptions(slug: string) {
   return {
@@ -41,7 +43,12 @@ export function staticPageRouteOptions(slug: string) {
       const locale = getLocale();
       const key = pageKey(slug, locale);
       if (!key) throw notFound();
-      return { meta: (await pages[key]()).meta, key, locale };
+      return {
+        meta: (await pages[key]()).meta,
+        key,
+        locale,
+        guide: danceGuidePaths.some((path) => path === '/' + slug),
+      };
     },
     head: ({ loaderData }: { loaderData?: LoaderData }) => {
       if (!loaderData) return {};
@@ -99,7 +106,7 @@ export function staticPageRouteOptions(slug: string) {
   };
 }
 function StaticPage() {
-  const { meta, key } = useLoaderData({ strict: false }) as LoaderData;
+  const { meta, key, guide } = useLoaderData({ strict: false }) as LoaderData;
   const Content = components[key];
   return (
     <article>
@@ -110,6 +117,7 @@ function StaticPage() {
       <Suspense fallback={<p>{m['dance.loading']()}</p>}>
         <Content />
       </Suspense>
+      {guide && <DanceGuideCta />}
     </article>
   );
 }

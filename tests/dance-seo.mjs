@@ -59,6 +59,30 @@ for (const locale of ['en', 'zh']) {
       assert.match(html, /href="mailto:support@smalltownboyai.video"/, url);
     }
     assert.equal(/name="robots" content="noindex/.test(html), !indexable, url);
+    const cta = html.match(
+      /<aside\b[^>]*data-guide-cta[^>]*>([\s\S]*?)<\/aside>/
+    )?.[1];
+    assert.equal(
+      !!cta,
+      guidePaths.includes(path),
+      url + ': guide-only creation CTA'
+    );
+    if (cta) {
+      const href = decodeHtml(cta.match(/href="([^"]+)"/)?.[1] ?? '');
+      const target = new URL(href, base);
+      assert.equal(
+        target.pathname.replace(/\/$/, ''),
+        prefix,
+        url + ': CTA locale'
+      );
+      assert.equal(target.hash, '#studio', url + ': CTA reaches photo studio');
+      assert.match(
+        cta,
+        locale === 'en'
+          ? /Choose photos and start creating/
+          : /选择照片，开始制作/
+      );
+    }
     if (guidePaths.includes(path)) {
       assert.equal([...html.matchAll(/<h1\b/g)].length, 1, url + ': one H1');
       const canonical = html.match(/rel="canonical" href="([^"]+)"/)?.[1];
@@ -81,6 +105,7 @@ for (const locale of ['en', 'zh']) {
       const reviewedAt = [
         '/guides',
         '/smalltown-boy-sample',
+        '/smalltown-boy-video-options',
         '/smalltown-boy-generator-comparison',
       ].includes(path)
         ? '2026-10-17'
