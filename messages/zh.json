@@ -1402,5 +1402,9 @@
   "dance.result.history": "查看历史视频（{count}）",
   "dance.flow.submitting": "正在提交视频任务…",
   "dance.flow.submission_unknown": "提交结果尚未确认，请先查看我的视频，勿重复提交。",
-  "dance.flow.task_help": "可离开页面，稍后从“我的视频”查看进度或下载。任务核对期间请勿重复提交同一视频。"
+  "dance.flow.task_help": "可离开页面，稍后从“我的视频”查看进度或下载。任务核对期间请勿重复提交同一视频。",
+  "dance.help.email_label": "需要帮助？联系客服邮箱：",
+  "dance.help.subject": "账号、付款或视频问题反馈",
+  "dance.help.task_subject": "视频问题反馈 — 任务 {id}",
+  "dance.help.body": "请描述遇到的问题和发生时间。如涉及账号或付款，请提供登录邮箱。请勿发送密码、验证码或完整银行卡信息。"
 }

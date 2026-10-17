@@ -19,6 +19,7 @@ import { type DanceResolution } from '@/lib/dance-settings';
 import { m } from '@/paraglide/messages.js';
 import { getLocale, localizeHref } from '@/paraglide/runtime.js';
 import { DancePricingFacts } from '@/blocks/dance-pricing-facts';
+import { DanceSupportEmail } from '@/blocks/dance-support-email';
 import { LocaleSelector } from '@/components/locale-selector';
 import { Button } from '@/components/ui/button';
 
@@ -510,13 +511,14 @@ export function DancePricing({
             <Link href="/refund-policy">{m['dance.refunds']()}</Link>
             <Link href="/terms-of-service">{m['dance.terms']()}</Link>
             <Link href="/privacy-policy">{m['dance.privacy']()}</Link>
-            <Link href="/contact">{m['dance.support']()}</Link>
+            <DanceSupportEmail />
           </nav>
         </div>
       )}
       {forGeneration && stripeTest && (
         <p className="dance-muted">{m['dance.testcheckoutbody']()}</p>
       )}
+      {forGeneration && purchase.isError && <DanceSupportEmail />}
       {forGeneration && purchase.isError && (
         <p role="alert">{m['dance.actionerror']()}</p>
       )}
@@ -563,7 +565,12 @@ export function DancePricing({
               {((pack?.cents || 0) / 100).toFixed(2)} USD
             </p>
             <p className="dance-muted">{m['dance.pack.format']()}</p>
-            {purchase.isError && <p role="alert">{m['dance.actionerror']()}</p>}
+            {purchase.isError && (
+              <div role="alert">
+                <p>{m['dance.actionerror']()}</p>
+                <DanceSupportEmail />
+              </div>
+            )}
             {settings.isError && (
               <p role="alert">
                 {m['dance.purchase.balance_error']()}{' '}

@@ -10,6 +10,7 @@ import { authContinuationQuery } from '@/lib/redirect';
 import { m } from '@/paraglide/messages.js';
 import { localizeHref } from '@/paraglide/runtime.js';
 import { usePublicConfig } from '@/hooks/use-public-config';
+import { DanceSupportEmail } from '@/blocks/dance-support-email';
 import { TextField } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import {
@@ -165,6 +166,9 @@ function ForgotPasswordPage() {
                 </FieldGroup>
               </form>
             )}
+            <div className="mt-5">
+              <DanceSupportEmail />
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -1402,5 +1402,9 @@
   "dance.result.history": "View past videos ({count})",
   "dance.flow.submitting": "Submitting your video…",
   "dance.flow.submission_unknown": "Submission not yet confirmed. Check My videos before retrying.",
-  "dance.flow.task_help": "You can leave this page and return to My videos to check progress or download. Do not submit the same video again while it is being checked."
+  "dance.flow.task_help": "You can leave this page and return to My videos to check progress or download. Do not submit the same video again while it is being checked.",
+  "dance.help.email_label": "Need help? Email",
+  "dance.help.subject": "Account, payment or video support",
+  "dance.help.task_subject": "Video support — task {id}",
+  "dance.help.body": "Please describe the issue and when it occurred. For account or payment issues, include your sign-in email. Do not send passwords, verification codes or full card details."
 }

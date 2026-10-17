@@ -8,6 +8,7 @@ import { Link, useRouter } from '@/core/i18n/navigation';
 import { envConfigs } from '@/config';
 import { authContinuationQuery } from '@/lib/redirect';
 import { m } from '@/paraglide/messages.js';
+import { DanceSupportEmail } from '@/blocks/dance-support-email';
 import { TextField } from '@/components/form-field';
 import { Button } from '@/components/ui/button';
 import {
@@ -180,6 +181,9 @@ function ResetPasswordPage() {
                 </FieldGroup>
               </form>
             )}
+            <div className="mt-5">
+              <DanceSupportEmail />
+            </div>
           </CardContent>
         </Card>
       </div>

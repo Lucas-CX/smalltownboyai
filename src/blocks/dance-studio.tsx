@@ -56,6 +56,7 @@ import { getLocale, localizeHref } from '@/paraglide/runtime.js';
 import { DanceGuides } from '@/blocks/dance-guides';
 import { DancePricing } from '@/blocks/dance-pricing';
 import { DanceSocialExamples } from '@/blocks/dance-social-examples';
+import { DanceSupportEmail } from '@/blocks/dance-support-email';
 import { DanceClosingCta, DanceTrend } from '@/blocks/dance-trend';
 import { DanceVideo } from '@/components/dance-video';
 import { LocaleSelector } from '@/components/locale-selector';
@@ -1101,6 +1102,9 @@ export function DanceStudio() {
           {orderError.message}
         </p>
       )}
+      <div className="mt-4">
+        <DanceSupportEmail taskId={job.id} />
+      </div>
       <div className="dance-order-actions">
         <button
           disabled={action.isPending || !!job.supportRequested}
@@ -1323,9 +1327,7 @@ export function DanceStudio() {
                           {m['dance.flow.login_verify']()}
                         </button>
                       ))}
-                    {paymentUnconfirmed && (
-                      <Link href="/contact">{t('support')}</Link>
-                    )}
+                    {paymentUnconfirmed && <DanceSupportEmail />}
                   </div>
                 )}
                 {photoCount < 2 && error && (
@@ -1928,6 +1930,7 @@ export function DanceStudio() {
           <Link href="/terms-of-service">{t('terms')}</Link>
           <Link href="/refund-policy">{t('refunds')}</Link>
           <Link href="/contact">{t('contact')}</Link>
+          <DanceSupportEmail />
         </div>
       </footer>
     </div>
