@@ -24,6 +24,11 @@ export function DanceGuides() {
           <p>{m['dance.guides.sample_description']()}</p>
         </article>
       </div>
+      <p>
+        <Link href="/smalltown-boy-generator-comparison">
+          {m['dance.guides.compare']()} ↗
+        </Link>
+      </p>
       <Link href="/guides">{m['dance.guides.all']()} ↗</Link>
     </section>
   );

@@ -1334,6 +1334,7 @@
   "dance.guides.how_description": "从照片选择、角色顺序到付款与下载，按步骤操作。",
   "dance.guides.sample": "查看完整样片及两张输入图",
   "dance.guides.sample_description": "虚构猫狗演示，并说明配乐的后期处理。",
+  "dance.guides.compare": "先比较生成器，再选择你的视频",
   "dance.guides.all": "视频指南",
   "dance.creditscheckerror": "暂时无法读取积分余额。照片已保存在当前标签页，请重试。",
   "dance.deleted": "文件访问已关闭",

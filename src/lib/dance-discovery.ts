@@ -15,6 +15,9 @@ export function danceDiscoveryText(full = false) {
     '',
     m['dance.seo.description']({}, locale),
     '',
+    'Official website: ' + origin + '/',
+    'This guide describes the service at this domain. Other websites using the Smalltown Boy trend name may offer different products.',
+    '',
     '## Product, guides and policies',
     '',
     ...dancePublicPaths.map(

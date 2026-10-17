@@ -1,6 +1,7 @@
 import { lazy, Suspense, type ComponentType } from 'react';
 import { notFound, useLoaderData } from '@tanstack/react-router';
 
+import { danceTrendPreview } from '@/lib/dance-media';
 import { danceGuidePaths } from '@/lib/dance-public-pages';
 import {
   danceOrganizationId,
@@ -13,7 +14,12 @@ import { baseLocale, getLocale } from '@/paraglide/runtime.js';
 
 type PageModule = {
   default: ComponentType;
-  meta: { title: string; description: string; updated_at: string };
+  meta: {
+    title: string;
+    description: string;
+    updated_at: string;
+    sampleVideo?: { name: string; description: string };
+  };
 };
 const pages = import.meta.glob<PageModule>('/src/content/pages/*.mdx');
 const components = Object.fromEntries(
@@ -60,8 +66,32 @@ export function staticPageRouteOptions(slug: string) {
             inLanguage: loaderData.locale,
             dateModified: loaderData.meta.updated_at,
             publisher: { '@id': danceOrganizationId() },
+            author: { '@id': danceOrganizationId() },
             isPartOf: { '@id': danceWebsiteId() },
           }),
+          ...(slug === 'smalltown-boy-sample' && loaderData.meta.sampleVideo
+            ? [
+                jsonLd({
+                  '@context': 'https://schema.org',
+                  '@type': 'VideoObject',
+                  '@id': seo.links[0].href + '#video',
+                  name: loaderData.meta.sampleVideo.name,
+                  description: loaderData.meta.sampleVideo.description,
+                  thumbnailUrl: new URL(
+                    danceTrendPreview.poster,
+                    seo.links[0].href
+                  ).href,
+                  contentUrl: new URL(danceTrendPreview.src, seo.links[0].href)
+                    .href,
+                  uploadDate: danceTrendPreview.uploadedAt,
+                  duration: danceTrendPreview.duration,
+                  width: danceTrendPreview.width,
+                  height: danceTrendPreview.height,
+                  publisher: { '@id': danceOrganizationId() },
+                  mainEntityOfPage: seo.links[0].href,
+                }),
+              ]
+            : []),
         ],
       };
     },

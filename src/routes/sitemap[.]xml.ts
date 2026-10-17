@@ -17,7 +17,7 @@ const pageMetadata = import.meta.glob<{ updated_at: string }>(
 
 function lastModified(path: string, locale: string) {
   // Content maintenance dates, never the request or build time.
-  if (path === '/') return '2026-10-14';
+  if (path === '/') return '2026-10-17';
   if (path === '/pricing') return DANCE_PRICING_REVIEWED_AT;
   return pageMetadata[`/src/content/pages${path}.${locale}.mdx`]?.updated_at;
 }

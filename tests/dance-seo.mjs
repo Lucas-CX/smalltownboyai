@@ -19,6 +19,7 @@ const paths = [
   '/smalltown-boy-photo-guide',
   '/smalltown-boy-video-options',
   '/smalltown-boy-sample',
+  '/smalltown-boy-generator-comparison',
 ];
 const guidePaths = paths.slice(paths.indexOf('/guides'));
 function decodeHtml(text) {
@@ -77,7 +78,17 @@ for (const locale of ['en', 'zh']) {
         path === '/guides' ? /"@type":"CollectionPage"/ : /"@type":"Article"/,
         url
       );
-      assert.match(html, /"dateModified":"2026-10-13"/, url);
+      const reviewedAt = [
+        '/guides',
+        '/smalltown-boy-sample',
+        '/smalltown-boy-generator-comparison',
+      ].includes(path)
+        ? '2026-10-17'
+        : '2026-10-13';
+      assert.ok(
+        html.includes(`"dateModified":"${reviewedAt}"`),
+        url + ': content review date'
+      );
       assert.ok(discovery.includes(path), url + ': AI discovery');
       if (path === '/guides') {
         for (const guide of guidePaths.filter((item) => item !== '/guides'))
@@ -115,11 +126,56 @@ for (const locale of ['en', 'zh']) {
         );
       }
     }
-    assert.doesNotMatch(
-      html,
-      /"@type":"VideoObject"/,
-      'No historical sample claims'
+    const videoSchemas = [
+      ...html.matchAll(
+        /<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g
+      ),
+    ]
+      .map((match) => JSON.parse(match[1]))
+      .filter((schema) => schema['@type'] === 'VideoObject');
+    assert.equal(
+      videoSchemas.length,
+      path === '/smalltown-boy-sample' ? 1 : 0,
+      url + ': only the actual sample page describes a video'
     );
+    if (videoSchemas.length) {
+      const video = videoSchemas[0];
+      assert.equal(
+        new URL(video.contentUrl).pathname,
+        '/media/smalltown-duo-v1/example.mp4'
+      );
+      assert.equal(
+        new URL(video.thumbnailUrl).pathname,
+        '/media/smalltown-duo-v1/poster.webp'
+      );
+      assert.equal(video.duration, 'PT14S');
+      assert.equal(video.uploadDate, '2026-10-11');
+      assert.match(
+        video.description,
+        locale === 'en' ? /added after generation/ : /生成后添加/
+      );
+      assert.ok(
+        html.includes('2026') && html.includes('11'),
+        'Publication information is visible'
+      );
+    }
+    if (path === '/smalltown-boy-generator-comparison') {
+      assert.doesNotMatch(
+        html.match(/<article\b[^>]*>([\s\S]*?)<\/article>/)?.[1] ?? '',
+        /\*\*/,
+        url + ': emphasis renders without Markdown delimiters'
+      );
+      assert.match(
+        html,
+        /https:\/\/viggle.ai\/tools\/ai-dance\//,
+        url + ': comparison sources'
+      );
+      assert.match(
+        html,
+        locale === 'en' ? /not an independent ranking/ : /不是独立排行榜/,
+        url + ': comparison disclosure'
+      );
+    }
     if (path === '/') {
       assert.equal([...html.matchAll(/<h1\b/g)].length, 1, 'One homepage H1');
       assert.match(

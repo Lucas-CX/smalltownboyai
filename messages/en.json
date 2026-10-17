@@ -1334,6 +1334,7 @@
   "dance.guides.how_description": "Photo choices, role order, payment and download, step by step.",
   "dance.guides.sample": "See the sample and both input images",
   "dance.guides.sample_description": "A fictional cat-and-dog demonstration, with its audio editing explained.",
+  "dance.guides.compare": "Compare generators before choosing your video",
   "dance.guides.all": "Video guides",
   "dance.creditscheckerror": "We could not check your credit balance. Your photos are saved in this tab. Please try again.",
   "dance.deleted": "File access closed",

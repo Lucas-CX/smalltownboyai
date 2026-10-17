@@ -6,6 +6,7 @@ export const danceGuidePaths = [
   '/smalltown-boy-photo-guide',
   '/smalltown-boy-video-options',
   '/smalltown-boy-sample',
+  '/smalltown-boy-generator-comparison',
 ] as const;
 
 export const dancePublicPaths: readonly string[] = [
