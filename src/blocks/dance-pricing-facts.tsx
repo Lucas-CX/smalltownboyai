@@ -4,7 +4,6 @@ import {
   danceCreditCost,
   dancePlans,
 } from '@/lib/dance-plans';
-import { danceResolutions } from '@/lib/dance-settings';
 import { m } from '@/paraglide/messages.js';
 
 export function DancePricingFacts() {
@@ -42,7 +41,7 @@ export function DancePricingFacts() {
           </tr>
         </thead>
         <tbody>
-          {danceResolutions.map((resolution) => (
+          {(['720P'] as const).map((resolution) => (
             <tr key={resolution}>
               <th scope="row" className="border-b py-2 pr-4 font-normal">
                 {resolution.toLowerCase()}
@@ -61,7 +60,6 @@ export function DancePricingFacts() {
         {m['dance.pricing_snapshot.hd_answer']({
           credits: dancePlans[0].credits,
           cost720: danceCreditCost('720P'),
-          cost1080: danceCreditCost('1080P'),
         })}
       </p>
       <p className="dance-muted mt-3">

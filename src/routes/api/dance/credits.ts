@@ -95,9 +95,12 @@ async function handle({ request }: { request: Request }) {
       )
     );
   } catch {
-    return respErr('Credit purchase unavailable. No payment was taken.', {
-      status: 400,
-    });
+    return respErr(
+      'Unable to open checkout. If you already paid, verify the payment before trying again.',
+      {
+        status: 400,
+      }
+    );
   }
 }
 export const Route = createFileRoute('/api/dance/credits')({

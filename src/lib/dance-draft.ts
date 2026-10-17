@@ -1,7 +1,10 @@
 import { browserUuid } from '@/lib/browser-uuid';
+import { dancePlans } from '@/lib/dance-plans';
 import type { DanceResolution } from '@/lib/dance-settings';
 
 type Draft = {
+  packId?: (typeof dancePlans)[number]['id'];
+  checkoutKeys?: Partial<Record<(typeof dancePlans)[number]['id'], string>>;
   castVersion?: 'smalltown-duo-v1';
   resolution?: DanceResolution;
   photos: (string | null)[];
@@ -64,7 +67,7 @@ async function access<T>(
     db.close();
   }
 }
-export async function saveDanceDraft(draft: Draft) {
+async function saveDraft(draft: Draft) {
   const value = {
     ...draft,
     castVersion: draft.castVersion || 'smalltown-duo-v1',
@@ -84,7 +87,7 @@ export async function saveDanceDraft(draft: Draft) {
     sessionStorage.setItem(backupKey, JSON.stringify(value));
   }
 }
-export async function clearDanceDraft() {
+async function clearDraft() {
   // A tombstone prevents an old IndexedDB copy resurfacing after a failed delete.
   try {
     sessionStorage.setItem(backupKey, 'null');
@@ -93,9 +96,7 @@ export async function clearDanceDraft() {
   }
   await access((store, id) => store.delete(id)).catch(() => {});
 }
-export async function loadDanceDraft(
-  ownerId?: string
-): Promise<Draft | undefined> {
+async function loadDraft(ownerId?: string): Promise<Draft | undefined> {
   let draft: Draft | undefined;
   let backup: string | null = null;
   try {
@@ -107,7 +108,7 @@ export async function loadDanceDraft(
     try {
       draft = JSON.parse(backup) || undefined;
     } catch {
-      await clearDanceDraft();
+      await clearDraft();
       return;
     }
   } else {
@@ -127,8 +128,34 @@ export async function loadDanceDraft(
       (draft.expiresAt || 0) < Date.now() ||
       (draft.ownerId && draft.ownerId !== ownerId))
   ) {
-    await clearDanceDraft();
+    await clearDraft();
     return;
   }
-  return draft;
+  // Stored consent is historical, never permission to submit a restored draft.
+  return draft
+    ? {
+        ...draft,
+        packId: dancePlans.some((plan) => plan.id === draft.packId)
+          ? draft.packId
+          : 'friends',
+        consent: false,
+      }
+    : undefined;
+}
+
+// Serialize edits and deletion so a slower old save cannot resurrect removed photos.
+let pending: Promise<unknown> = Promise.resolve();
+function ordered<T>(operation: () => Promise<T>): Promise<T> {
+  const result = pending.then(operation, operation);
+  pending = result.catch(() => {});
+  return result;
+}
+export function saveDanceDraft(draft: Draft) {
+  return ordered(() => saveDraft(draft));
+}
+export function clearDanceDraft() {
+  return ordered(clearDraft);
+}
+export function loadDanceDraft(ownerId?: string) {
+  return ordered(() => loadDraft(ownerId));
 }

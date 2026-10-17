@@ -38,12 +38,12 @@ export function danceDiscoveryText(full = false) {
       '',
       '## Pricing and delivery',
       '',
-      'One-time packs; no subscription. Unused credits do not expire. Prices are in USD. Video counts below assume 720p.',
+      'One-time packs; no subscription. Unused credits do not expire. Prices are in USD. All new videos are 720p.',
       ...dancePlans.map(
         (plan) =>
           `- $${(plan.cents / 100).toFixed(2)}: ${plan.credits} credits, enough for ${plan.videos} video(s) at 720p.`
       ),
-      ...Object.entries(DANCE_RESOLUTION_CREDITS).map(
+      ...Object.entries({ '720P': DANCE_RESOLUTION_CREDITS['720P'] }).map(
         ([resolution, credits]) =>
           `- ${resolution.toLowerCase()}: ${credits} credits per video.`
       ),

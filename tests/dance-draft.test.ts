@@ -35,6 +35,8 @@ test('unavailable IndexedDB falls back to tab storage with ownership, expiry and
       photos: ['photo1', 'photo2'],
       consent: true,
       requestKey: 'same-request',
+      packId: 'collection' as const,
+      checkoutKeys: { collection: 'stable-checkout-key' },
       ownerId: 'owner',
     };
     await saveDanceDraft(draft);
@@ -44,6 +46,33 @@ test('unavailable IndexedDB falls back to tab storage with ownership, expiry and
       'expired session cannot view owned photos'
     );
     assert.deepEqual((await loadDanceDraft('owner'))?.photos, draft.photos);
+    assert.equal(
+      (await loadDanceDraft('owner'))?.consent,
+      false,
+      'restoring an old confirmed draft must require fresh confirmation'
+    );
+    assert.equal((await loadDanceDraft('owner'))?.packId, 'collection');
+    assert.equal(
+      (await loadDanceDraft('owner'))?.checkoutKeys?.collection,
+      'stable-checkout-key'
+    );
+    await saveDanceDraft({ ...draft, packId: undefined });
+    assert.equal((await loadDanceDraft('owner'))?.packId, 'friends');
+    const oldSave = saveDanceDraft(draft);
+    const newSave = saveDanceDraft({ ...draft, photos: ['replacement', null] });
+    await Promise.all([oldSave, newSave]);
+    assert.deepEqual((await loadDanceDraft('owner'))?.photos, [
+      'replacement',
+      null,
+    ]);
+    const pendingSave = saveDanceDraft(draft);
+    const removal = clearDanceDraft();
+    await Promise.all([pendingSave, removal]);
+    assert.equal(
+      await loadDanceDraft('owner'),
+      undefined,
+      'removal must win over an earlier unfinished save'
+    );
     for (let mask = 1; mask < 4; mask++) {
       const partial = {
         ...draft,

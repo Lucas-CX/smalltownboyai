@@ -2,69 +2,87 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { getAuth } from '@/core/auth';
 import { danceStripeLive } from '@/core/payment/dance-mode';
-import { recordFunnel, requestFlow } from '@/core/telemetry/dance-funnel';
 import { getAllConfigs } from '@/modules/config/service';
 import {
   danceStripe,
   fulfillDanceCheckout,
 } from '@/modules/payment/dance-checkout';
-import { respErr } from '@/lib/resp';
+import { reviewDancePayment } from '@/lib/dance-payment-review';
+import { enforceMinIntervalRateLimit } from '@/lib/rate-limit';
+import { respData } from '@/lib/resp';
 import { locales, localizeUrl } from '@/paraglide/runtime.js';
 
 export const Route = createFileRoute('/api/dance/payment-return')({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        try {
-          const session = await getAuth().api.getSession({
-            headers: request.headers,
-          });
-          if (!session?.user)
-            return respErr('Sign in to verify your payment', { status: 401 });
-          const config = await getAllConfigs(true);
-          const id = new URL(request.url).searchParams.get('session_id') || '';
-          if (!id.startsWith(danceStripeLive() ? 'cs_live_' : 'cs_test_'))
-            throw new Error('Invalid payment session');
-          const checkout = await danceStripe(
-            config.stripe_secret_key || ''
-          ).checkout.sessions.retrieve(id);
-          if (checkout.metadata?.userId !== session.user.id)
-            return respErr('Not found', { status: 404 });
-          await fulfillDanceCheckout(checkout);
-          const preferredLocale = request.headers
-            .get('cookie')
-            ?.match(/(?:^|;\s*)PARAGLIDE_LOCALE=([^;]*)/)?.[1];
-          const locale =
-            locales.find(
-              (value) =>
-                value === new URL(request.url).searchParams.get('locale')
-            ) ||
-            locales.find((value) => value === preferredLocale) ||
-            'en';
-          const destination = localizeUrl(
-            new URL('/?resume=1#studio', request.url),
-            { locale }
-          );
-          return new Response(null, {
-            status: 303,
-            headers: {
-              Location:
-                destination.pathname + destination.search + destination.hash,
-              'Cache-Control': 'no-store',
-              'Set-Cookie': `dance_payment_receipt=${checkout.id}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=1800`,
-            },
-          });
-        } catch {
-          await recordFunnel({
-            event: 'server_payment_return_failed',
-            flowId: requestFlow(request),
-            params: { reason: 'payment_unconfirmed' },
-          });
-          return respErr(
-            'Payment not confirmed. Return to pricing or contact support.',
-            { status: 409 }
-          );
+        const url = new URL(request.url);
+        const cookies = request.headers.get('cookie') || '';
+        if (url.searchParams.get('check') === '1') {
+          try {
+            const session = await getAuth().api.getSession({
+              headers: request.headers,
+            });
+            if (!session?.user)
+              return respData(
+                { status: 'login' },
+                { headers: { 'Cache-Control': 'private, no-store' } }
+              );
+            const limited = enforceMinIntervalRateLimit(request, {
+              intervalMs: 5000,
+              keyPrefix: `dance-payment-review-${session.user.id}`,
+            });
+            if (limited) return limited;
+            const status = await reviewDancePayment({
+              userId: session?.user.id,
+              sessionId:
+                cookies.match(/(?:^|;\s*)dance_payment_receipt=([^;]*)/)?.[1] ||
+                '',
+              live: danceStripeLive(),
+              retrieve: async (id) => {
+                const config = await getAllConfigs(true);
+                return danceStripe(
+                  config.stripe_secret_key || ''
+                ).checkout.sessions.retrieve(id);
+              },
+              fulfill: fulfillDanceCheckout,
+            });
+            return respData(
+              { status },
+              { headers: { 'Cache-Control': 'private, no-store' } }
+            );
+          } catch {
+            return respData(
+              { status: 'pending' },
+              { headers: { 'Cache-Control': 'private, no-store' } }
+            );
+          }
         }
+        // Login expiry and provider outages return to a recoverable page. The page
+        // verifies once; only an explicit user click can start generation.
+        const locale =
+          locales.find((v) => v === url.searchParams.get('locale')) ||
+          locales.find(
+            (v) =>
+              v === cookies.match(/(?:^|;\s*)PARAGLIDE_LOCALE=([^;]*)/)?.[1]
+          ) ||
+          'en';
+        const destination = localizeUrl(
+          new URL('/?resume=1&payment=review#studio', request.url),
+          { locale }
+        );
+        const id = url.searchParams.get('session_id') || '';
+        const valid =
+          id.length <= 255 && /^cs_(live|test)_[A-Za-z0-9_]+$/.test(id);
+        return new Response(null, {
+          status: 303,
+          headers: {
+            Location:
+              destination.pathname + destination.search + destination.hash,
+            'Cache-Control': 'no-store',
+            'Set-Cookie': `dance_payment_receipt=${valid ? id : ''}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${valid ? 1800 : 0}`,
+          },
+        });
       },
     },
   },

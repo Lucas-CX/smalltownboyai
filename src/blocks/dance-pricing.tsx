@@ -15,7 +15,7 @@ import {
   savePurchaseIntent,
 } from '@/lib/dance-purchase-intent';
 import { dancePurchaseOffer } from '@/lib/dance-purchase-offer';
-import { danceResolutions, type DanceResolution } from '@/lib/dance-settings';
+import { type DanceResolution } from '@/lib/dance-settings';
 import { m } from '@/paraglide/messages.js';
 import { getLocale, localizeHref } from '@/paraglide/runtime.js';
 import { DancePricingFacts } from '@/blocks/dance-pricing-facts';
@@ -308,7 +308,6 @@ export function DancePricing({
           <p className="dance-purchase-context">
             {m['dance.purchase.current']({
               resolution: resolution.toLowerCase(),
-              credits: requiredCredits,
             })}
           </p>
           {ctaState === 'credits_unavailable' ? (
@@ -344,17 +343,11 @@ export function DancePricing({
                     ? m['dance.purchase.use_balance']()
                     : m['dance.purchase.pay']({
                         price: ((offer.plan?.cents ?? 0) / 100).toFixed(2),
-                        resolution: resolution.toLowerCase(),
                       })}
               </Button>
               {!ctaDisabled && !offer.canContinue && offer.plan && (
                 <p className="dance-purchase-credit-note">
-                  {m['dance.purchase.credit_summary']({
-                    bought: offer.plan.credits,
-                    balance: offer.available,
-                    remaining:
-                      offer.available + offer.plan.credits - requiredCredits,
-                  })}
+                  {m['dance.purchase.credit_summary']()}
                 </p>
               )}
             </>
@@ -402,7 +395,7 @@ export function DancePricing({
       ) : (
         <>
           <p className="dance-resolution-prices">
-            {danceResolutions
+            {(['720P'] as const)
               .map(
                 (value) =>
                   `${value.toLowerCase()}: ${danceCreditCost(value)} ${m['dance.credits']()}`
@@ -500,7 +493,7 @@ export function DancePricing({
         <div className="mt-6 max-w-3xl space-y-3 text-sm leading-relaxed">
           <p className="dance-muted">
             {m['dance.pricing_details.cost']({
-              resolutions: danceResolutions
+              resolutions: (['720P'] as const)
                 .map(
                   (value) => `${value.toLowerCase()}: ${danceCreditCost(value)}`
                 )

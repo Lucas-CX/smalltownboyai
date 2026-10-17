@@ -7,7 +7,6 @@ import {
   LockKeyhole,
   Play,
   Plus,
-  Upload,
   Video,
 } from 'lucide-react';
 
@@ -45,12 +44,7 @@ import { DANCE_PHOTO_RULE_VERSION } from '@/lib/dance-photo-policy';
 import { danceCreditCost, dancePlans } from '@/lib/dance-plans';
 import { danceProgress } from '@/lib/dance-progress';
 import { danceUpfrontQuote } from '@/lib/dance-purchase-offer';
-import {
-  danceResolutions,
-  loadDanceResolution,
-  saveDanceResolution,
-  type DanceResolution,
-} from '@/lib/dance-settings';
+import { type DanceResolution } from '@/lib/dance-settings';
 import { readDanceVideoState } from '@/lib/dance-video-state';
 import { m } from '@/paraglide/messages.js';
 import { getLocale, localizeHref } from '@/paraglide/runtime.js';
@@ -220,17 +214,60 @@ export function DanceStudio() {
     isPending: !hydrated || authSession.isPending,
   };
   const qc = useQueryClient();
+  const [paymentReturn, setPaymentReturn] = useState(false);
+  useEffect(() => {
+    setPaymentReturn(
+      new URLSearchParams(window.location.search).get('payment') === 'review'
+    );
+  }, []);
+  const paymentReview = useQuery({
+    queryKey: ['dance-payment-review', session.data?.user.id],
+    queryFn: async () => {
+      const result = await apiGet<{
+        status: 'confirmed' | 'pending' | 'login';
+      }>('/api/dance/payment-return?check=1');
+      if (result.status === 'confirmed')
+        await Promise.all([
+          qc.invalidateQueries({ queryKey: ['dance-credits'] }),
+          qc.invalidateQueries({ queryKey: ['dance-payment-analytics'] }),
+        ]);
+      return result;
+    },
+    enabled: paymentReturn && !session.isPending,
+    retry: false,
+    staleTime: 0,
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+  });
+  const paymentUnconfirmed =
+    paymentReturn &&
+    (paymentReview.isFetching || paymentReview.data?.status !== 'confirmed');
   const settings = useQuery({
     queryKey: ['dance-settings'],
     queryFn: () => apiGet<{ simulation: boolean }>('/api/dance/settings'),
   });
   const [photos, setPhotos] = useState<(string | null)[]>([null, null]);
   const previews = castPreview(photos);
-  const [resolution, setResolution] = useState<DanceResolution>('720P');
-  useEffect(() => {
-    const saved = loadDanceResolution();
-    if (saved) setResolution(saved);
-  }, []);
+  const resolution: DanceResolution = '720P';
+  const [packId, setPackId] =
+    useState<(typeof dancePlans)[number]['id']>('friends');
+  const checkoutKeys = useRef<
+    Partial<Record<(typeof dancePlans)[number]['id'], string>>
+  >({});
+  const selectedPlan = dancePlans.find((plan) => plan.id === packId)!;
+  const checkout = useMutation({
+    mutationFn: (input: {
+      packId: (typeof dancePlans)[number]['id'];
+      requestKey: string;
+    }) =>
+      apiPost<{ checkoutUrl?: string }>('/api/dance/credits', {
+        ...input,
+        confirmPreview: true,
+        flowId: danceFlowId(),
+        locale: getLocale(),
+      }),
+  });
   const [consent, setConsent] = useState(false);
   const [photoErrors, setPhotoErrors] = useState(['', '']);
   const [photoWarnings, setPhotoWarnings] = useState(['', '']);
@@ -263,6 +300,8 @@ export function DanceStudio() {
     const key = requestKey || browserUuid();
     await saveDanceDraft({
       photos,
+      packId,
+      checkoutKeys: checkoutKeys.current,
       consent,
       resolution,
       requestKey: key,
@@ -272,28 +311,35 @@ export function DanceStudio() {
   }
   const [showOrders, setShowOrders] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
-  const [purchaseOpen, setPurchaseOpen] = useState(false);
   const submitLock = useRef(false);
   const [preparing, setPreparing] = useState(false);
-  const restored = useRef(false);
+  const [draftReadyFor, setDraftReadyFor] = useState<string | null>(null);
+  const [draftNotice, setDraftNotice] = useState<
+    'saved' | 'restored' | 'error' | null
+  >(null);
+  const hadDraftPhotos = useRef(false);
   const lastUser = useRef<string | undefined>(undefined);
   useEffect(() => {
     if (session.isPending) return;
+    let canceled = false;
     const owner = session.data?.user.id;
+    setDraftReadyFor(null);
+    hadDraftPhotos.current = false;
     if (lastUser.current && lastUser.current !== owner) {
       resetDanceFlow();
       // Hide photos on session loss, but retain the owner-bound draft for
       // re-authentication. A different signed-in account must discard it.
       if (owner) void clearDanceDraft();
+      setPackId('friends');
+      checkoutKeys.current = {};
       setPhotos([null, null]);
       setConsent(false);
       setRequestKey(null);
     }
     lastUser.current = owner;
-    if (restored.current) return;
-    restored.current = true;
     void loadDanceDraft(owner)
       .then((draft) => {
+        if (canceled) return;
         if (!draft) {
           if (
             owner &&
@@ -315,34 +361,100 @@ export function DanceStudio() {
           resolution: draft.resolution || '720P',
         });
         setPhotos(draft.photos);
-        setResolution(draft.resolution || '720P');
-        setConsent(draft.consent);
-        setRequestKey(draft.requestKey);
+        setPackId(draft.packId || 'friends');
+        checkoutKeys.current = draft.checkoutKeys || {};
+
+        // Restoration never authorizes a generation, even after login/payment.
+        setConsent(false);
+        setRequestKey(draft.resolution === '720P' ? draft.requestKey : null);
+        hadDraftPhotos.current = draft.photos.some(Boolean);
+        setDraftNotice('restored');
         if (
           owner &&
           new URLSearchParams(window.location.search).get('checkout') ===
             'canceled'
         ) {
           // Return to the saved cast and offer, without submitting or charging.
-          setPurchaseOpen(true);
-          window.history.replaceState(null, '', localizeHref('/#studio'));
+          const url = new URL(window.location.href);
+          url.searchParams.delete('resume');
+          url.searchParams.delete('checkout');
+          window.history.replaceState(
+            null,
+            '',
+            url.pathname + url.search + '#studio'
+          );
         }
         if (
           owner &&
           new URLSearchParams(window.location.search).get('resume') === '1'
         ) {
-          window.history.replaceState(null, '', localizeHref('/#studio'));
-          void generate(draft);
+          const url = new URL(window.location.href);
+          url.searchParams.delete('resume');
+          url.searchParams.delete('checkout');
+          window.history.replaceState(
+            null,
+            '',
+            url.pathname + url.search + '#studio'
+          );
         }
       })
       .catch(() => {
+        if (canceled) return;
         trackDance('dance_client_error', {
           stage: 'draft_restore',
           reason: 'storage_failed',
         });
         setError(m['dance.drafterror']());
+      })
+      .finally(() => {
+        if (!canceled) setDraftReadyFor(owner || 'anonymous');
       });
+    return () => {
+      canceled = true;
+    };
   }, [session.isPending, session.data?.user.id]);
+  useEffect(() => {
+    const owner = session.data?.user.id;
+    if (session.isPending || draftReadyFor !== (owner || 'anonymous')) return;
+    if (!photos.some(Boolean)) {
+      if (hadDraftPhotos.current) void clearDanceDraft();
+      hadDraftPhotos.current = false;
+      setDraftNotice(null);
+      return;
+    }
+    hadDraftPhotos.current = true;
+    let canceled = false;
+    // Only local storage writes on edits; no timer, polling or server request.
+    void saveDanceDraft({
+      photos,
+      packId,
+      checkoutKeys: checkoutKeys.current,
+      resolution,
+      consent: false,
+      requestKey: requestKey || '',
+      ownerId: owner,
+    })
+      .then(() => {
+        if (!canceled)
+          setDraftNotice((notice) =>
+            notice === 'restored' ? notice : 'saved'
+          );
+      })
+      .catch(() => {
+        if (!canceled) setDraftNotice('error');
+      });
+    return () => {
+      canceled = true;
+    };
+  }, [
+    photos,
+    packId,
+    resolution,
+    requestKey,
+    draftReadyFor,
+    session.isPending,
+    session.data?.user.id,
+  ]);
   useEffect(() => {
     trackDance('dance_studio_viewed');
   }, []);
@@ -350,9 +462,6 @@ export function DanceStudio() {
     if (!session.isPending && session.data?.user)
       trackDance('dance_session_ready');
   }, [session.isPending, session.data?.user.id]);
-  useEffect(() => {
-    if (purchaseOpen) trackDance('dance_purchase_shown', { resolution });
-  }, [purchaseOpen]);
   const credits = useQuery({
     queryKey: ['dance-credits', session.data?.user.id],
     queryFn: () => apiGet<{ balance: number }>('/api/dance/credits'),
@@ -366,13 +475,6 @@ export function DanceStudio() {
         : 0;
   const quote = danceUpfrontQuote(danceCreditCost(resolution), quoteBalance);
   const quotePrice = (cents: number) => `$${(cents / 100).toFixed(2)} USD`;
-  const quoteText = (value: DanceResolution) => {
-    const item = danceUpfrontQuote(danceCreditCost(value), quoteBalance);
-    if (!item) return m['dance.quote.check']();
-    return item.canContinue
-      ? m['dance.quote.covered']()
-      : m['dance.guide.pack_price']({ price: quotePrice(item.cents) });
-  };
   const photoCount = photos.filter(Boolean).length;
   const missingRole = photos[0] ? 1 : 0;
   const costHeading = useRef<HTMLHeadingElement>(null);
@@ -381,13 +483,13 @@ export function DanceStudio() {
     if (!hasPhoto || !quote) return;
     trackDance('dance_quote_viewed', {
       resolution,
-      pack_id: quote.plan?.id,
-      value: quote.cents / 100,
+      pack_id: quote.canContinue ? undefined : selectedPlan.id,
+      value: quote.canContinue ? 0 : selectedPlan.cents / 100,
       currency: 'USD',
-      quote_cents: quote.cents,
+      quote_cents: quote.canContinue ? 0 : selectedPlan.cents,
       stage: 'studio',
     });
-  }, [hasPhoto, resolution, quote?.cents, quote?.plan?.id]);
+  }, [hasPhoto, resolution, quote?.canContinue, selectedPlan]);
   const jobs = useQuery({
     queryKey: ['dance-jobs', session.data?.user.id],
     queryFn: () => apiPost<Job[]>('/api/dance/refresh', {}),
@@ -454,11 +556,13 @@ export function DanceStudio() {
       trackDanceOnce(`${job.id}:upload`, 'dance_upload_succeeded', params);
       trackDanceOnce(`${job.id}:queued`, 'dance_generation_queued', params);
       resultObserver.current(job, true);
+      checkoutKeys.current = {};
       void clearDanceDraft().catch(() => {});
       setRequestKey(null);
       setPhotos([null, null]);
       setConsent(false);
       setShowOrders(true);
+      setPaymentReturn(false);
       window.history.replaceState(null, '', localizeHref('/#orders'));
       requestAnimationFrame(() =>
         document.getElementById('orders')?.scrollIntoView({
@@ -477,8 +581,10 @@ export function DanceStudio() {
         resolution: draft.resolution,
         reason: danceErrorReason(e),
       });
-      if (e.message === 'INSUFFICIENT_CREDITS') setPurchaseOpen(true);
-      else {
+      if (e.message === 'INSUFFICIENT_CREDITS') {
+        setError(m['dance.creditscheckerror']());
+        refresh();
+      } else {
         setError(t('createerror'));
         setShowOrders(true);
         refresh();
@@ -504,6 +610,7 @@ export function DanceStudio() {
   }) {
     if (
       previewOnly ||
+      paymentUnconfirmed ||
       readLock.current ||
       submitLock.current ||
       create.isPending ||
@@ -532,10 +639,17 @@ export function DanceStudio() {
     setError('');
     let saved = false;
     let submitted = false;
+    let redirecting = false;
+    let openingCheckout = false;
     try {
       draft.requestKey ||= browserUuid();
-      setRequestKey(draft.requestKey);
-      await saveDanceDraft({ ...draft, ownerId: session.data?.user.id });
+      setRequestKey(draft.resolution === '720P' ? draft.requestKey : null);
+      await saveDanceDraft({
+        ...draft,
+        packId,
+        checkoutKeys: checkoutKeys.current,
+        ownerId: session.data?.user.id,
+      });
       saved = true;
       if (!session.data?.user) {
         trackDance('dance_login_required', { stage: 'generation' });
@@ -549,7 +663,22 @@ export function DanceStudio() {
       });
       if (account.balance < danceCreditCost(draft.resolution)) {
         trackDance('dance_credits_required', { resolution: draft.resolution });
-        setPurchaseOpen(true);
+        const checkoutKey = (checkoutKeys.current[packId] ||= browserUuid());
+        await saveDanceDraft({
+          ...draft,
+          packId,
+          checkoutKeys: checkoutKeys.current,
+          ownerId: session.data.user.id,
+        });
+        openingCheckout = true;
+        const result = await checkout.mutateAsync({
+          packId,
+          requestKey: checkoutKey,
+        });
+        window.location.assign(
+          result.checkoutUrl || localizeHref('/?resume=1#studio')
+        );
+        redirecting = true;
         return;
       }
       submitted = true;
@@ -557,7 +686,7 @@ export function DanceStudio() {
     } catch (error) {
       if (saved && !submitted)
         trackDance('dance_client_error', {
-          stage: 'credits_check',
+          stage: openingCheckout ? 'checkout' : 'credits_check',
           reason: danceErrorReason(error),
         });
       if (!saved)
@@ -569,11 +698,17 @@ export function DanceStudio() {
         setLoginOpen(true);
       else if (!submitted)
         setError(
-          saved ? m['dance.creditscheckerror']() : m['dance.drafterror']()
+          !saved
+            ? m['dance.drafterror']()
+            : openingCheckout
+              ? m['dance.flow.checkout_error']()
+              : m['dance.creditscheckerror']()
         );
     } finally {
-      submitLock.current = false;
-      setPreparing(false);
+      if (!redirecting) {
+        submitLock.current = false;
+        setPreparing(false);
+      }
     }
   }
   async function select(file: File | undefined, index: number) {
@@ -732,6 +867,9 @@ export function DanceStudio() {
                   {m['dance.guide.start']()} <ArrowUpRight size={18} />
                 </a>
                 <p>{m['dance.guide.intro']()}</p>
+                <p className="dance-entry-price">
+                  {m['dance.flow.start_price']()}
+                </p>
               </div>
             </div>
           </section>
@@ -800,7 +938,63 @@ export function DanceStudio() {
                 <ArrowUpRight size={16} />
               </a>
             </div>
-            <div id="studio" className="dance-input-panel">
+            <div
+              id="studio"
+              className={`dance-input-panel ${photoCount === 2 ? 'dance-photos-ready' : ''}`}
+            >
+              {paymentReturn && (
+                <div
+                  className={`dance-payment-review ${paymentUnconfirmed ? '' : 'is-confirmed'}`}
+                  role="status"
+                >
+                  {paymentUnconfirmed ? (
+                    <AlertCircle size={28} />
+                  ) : (
+                    <Check size={28} />
+                  )}
+                  <h2>
+                    {paymentReview.isFetching
+                      ? m['dance.flow.verifying']()
+                      : paymentUnconfirmed
+                        ? m['dance.flow.pending']()
+                        : m['dance.flow.paid']()}
+                  </h2>
+                  <p>
+                    {paymentUnconfirmed
+                      ? m['dance.flow.payment_safe']()
+                      : m['dance.flow.paid_next']()}
+                  </p>
+                  {paymentUnconfirmed &&
+                    (session.data?.user ? (
+                      <button
+                        className="dance-swap-roles"
+                        disabled={paymentReview.isFetching}
+                        onClick={() => void paymentReview.refetch()}
+                      >
+                        {m['dance.flow.recheck']()}
+                      </button>
+                    ) : (
+                      <button
+                        className="dance-swap-roles"
+                        onClick={() => {
+                          void saveCurrentDraft()
+                            .then(() => setLoginOpen(true))
+                            .catch(() => setError(m['dance.drafterror']()));
+                        }}
+                      >
+                        {m['dance.flow.login_verify']()}
+                      </button>
+                    ))}
+                  {paymentUnconfirmed && (
+                    <Link href="/contact">{t('support')}</Link>
+                  )}
+                </div>
+              )}
+              {photoCount < 2 && error && (
+                <p className="dance-error" role="alert">
+                  {error}
+                </p>
+              )}
               <ol
                 className="dance-flow-steps"
                 aria-label={m['dance.guide.intro']()}
@@ -814,9 +1008,15 @@ export function DanceStudio() {
                 <li>{m['dance.guide.result']()}</li>
               </ol>
               <div className="dance-section-title">
-                <h2>{m['dance.cast.choose']()}</h2>
+                <h2>
+                  {photoCount === 2
+                    ? m['dance.flow.photos_ready']()
+                    : m['dance.cast.choose']()}
+                </h2>
               </div>
-              <p className="dance-muted">{m['dance.cast.one']()}</p>
+              {photoCount < 2 && (
+                <p className="dance-muted">{m['dance.cast.one']()}</p>
+              )}
               <div
                 className="dance-photo-progress"
                 role="status"
@@ -835,6 +1035,21 @@ export function DanceStudio() {
                           })}
                 </p>
               </div>
+              {photoCount < 2 && (
+                <details className="dance-photo-specs">
+                  <summary>{m['dance.flow.photo_help']()}</summary>
+                  <p>{t('limits')}</p>
+                </details>
+              )}
+              {draftNotice && (
+                <p className="dance-draft-notice" role="status">
+                  {draftNotice === 'error'
+                    ? m['dance.guide.draft_error']()
+                    : draftNotice === 'restored'
+                      ? m['dance.guide.draft_restored']()
+                      : m['dance.guide.draft_saved']()}
+                </p>
+              )}
               <div className="dance-upload-grid">
                 {roles.map((role, index) => (
                   <div className="dance-upload-slot" key={role}>
@@ -895,7 +1110,11 @@ export function DanceStudio() {
                         aria-invalid={!!photoErrors[index]}
                         aria-describedby={`photo-help-${index}${photoErrors[index] ? ` photo-error-${index}` : ''}`}
                         disabled={
-                          !hydrated || reading || create.isPending || preparing
+                          !draftReadyFor ||
+                          session.isPending ||
+                          reading ||
+                          create.isPending ||
+                          preparing
                         }
                         onClick={() => {
                           trackDance('dance_photo_picker_opened', {
@@ -970,26 +1189,35 @@ export function DanceStudio() {
                   </div>
                 ))}
               </div>
-              <Button
-                className="dance-primary dance-step-next"
-                disabled={!hydrated || reading || preparing || create.isPending}
-                onClick={() => {
-                  if (photoCount < 2) photoInputs.current[missingRole]?.click();
-                  else {
-                    costHeading.current?.scrollIntoView({ block: 'start' });
-                    costHeading.current?.focus({ preventScroll: true });
+              {photoCount < 2 && (
+                <Button
+                  className="dance-primary dance-step-next"
+                  disabled={
+                    !draftReadyFor ||
+                    session.isPending ||
+                    reading ||
+                    preparing ||
+                    create.isPending
                   }
-                }}
-              >
-                {reading
-                  ? t('reading')
-                  : photoCount === 2
-                    ? m['dance.guide.next']()
-                    : m['dance.guide.pick']({
-                        role: missingRole === 0 ? 'A' : 'B',
-                      })}
-                <ArrowUpRight size={18} />
-              </Button>
+                  onClick={() => {
+                    if (photoCount < 2)
+                      photoInputs.current[missingRole]?.click();
+                    else {
+                      costHeading.current?.scrollIntoView({ block: 'start' });
+                      costHeading.current?.focus({ preventScroll: true });
+                    }
+                  }}
+                >
+                  {reading
+                    ? t('reading')
+                    : photoCount === 2
+                      ? m['dance.guide.next']()
+                      : m['dance.guide.pick']({
+                          role: missingRole === 0 ? 'A' : 'B',
+                        })}
+                  <ArrowUpRight size={18} />
+                </Button>
+              )}
               <button
                 type="button"
                 className="dance-swap-roles"
@@ -1008,82 +1236,84 @@ export function DanceStudio() {
               >
                 {m['dance.cast.swap']()}
               </button>
-              <p className="dance-cast-note">{m['dance.cast.defaults']()}</p>
-              <p className="dance-cast-price">
-                {m['dance.output.spec']()} · {quoteText(resolution)}
-              </p>
-              <p className="dance-muted dance-cast-privacy">
-                <LockKeyhole size={14} />
-                {t('private')}
-              </p>
+
               {photoCount === 2 && (
                 <div className="dance-cast-options">
-                  <h3
-                    ref={costHeading}
-                    tabIndex={-1}
-                    className="dance-cost-heading"
-                  >
-                    {m['dance.guide.cost_title']()}
-                  </h3>
-                  <p className="dance-fileinfo">
-                    <Upload size={14} />
-                    {t('limits')}
-                  </p>
-                  <fieldset
-                    className="dance-resolution"
-                    disabled={preparing || create.isPending}
-                  >
-                    <legend>{m['dance.resolution']()}</legend>
-                    <div>
-                      {danceResolutions.map((value) => (
-                        <label key={value}>
+                  {(!quote || quote.canContinue) && (
+                    <h3
+                      ref={costHeading}
+                      tabIndex={-1}
+                      className="dance-cost-heading"
+                    >
+                      {m['dance.guide.cost_title']()}
+                    </h3>
+                  )}
+                  {quote && !quote.canContinue && !paymentUnconfirmed && (
+                    <fieldset
+                      className="dance-inline-packs"
+                      disabled={preparing || create.isPending}
+                    >
+                      <legend>{m['dance.inline.choose']()}</legend>
+                      {dancePlans.map((plan) => (
+                        <label
+                          key={plan.id}
+                          className={packId === plan.id ? 'is-selected' : ''}
+                        >
                           <input
                             type="radio"
-                            name="resolution"
-                            value={value}
-                            checked={resolution === value}
-                            onChange={() => {
-                              trackDance('dance_resolution_changed', {
-                                resolution: value,
-                                stage: 'studio',
-                              });
-                              setResolution(value);
-                              setRequestKey(null);
-                              saveDanceResolution(value);
-                            }}
+                            name="video-pack"
+                            value={plan.id}
+                            checked={packId === plan.id}
+                            onChange={() => setPackId(plan.id)}
                           />
                           <span>
-                            <strong>{value.toLowerCase()}</strong>
-                            <small>{quoteText(value)}</small>
+                            <strong>
+                              {m['dance.inline.count']({ count: plan.videos })}
+                            </strong>
+                            {plan.id === 'friends' && (
+                              <small>{m['dance.pack.recommended']()}</small>
+                            )}
+                          </span>
+                          <span>
+                            <strong>{quotePrice(plan.cents)}</strong>
                             <small>
-                              {danceCreditCost(value)} {m['dance.credits']()}
+                              {m['dance.purchase.unitprice']({
+                                price: (plan.cents / plan.videos / 100).toFixed(
+                                  2
+                                ),
+                              })}
                             </small>
                           </span>
                         </label>
                       ))}
-                    </div>
-                  </fieldset>
-                  <div className="dance-cost-summary" aria-live="polite">
-                    <strong>{m['dance.guide.summary']()}</strong>
-                    <p>
-                      {!quote
-                        ? m['dance.quote.check']()
-                        : quote.canContinue
-                          ? m['dance.quote.use']({
-                              credits: danceCreditCost(resolution),
-                              remaining: quote.remaining,
-                            })
-                          : m['dance.quote.pack']({
-                              price: quotePrice(quote.cents),
-                              pack: quote.plan!.credits,
-                              credits: danceCreditCost(resolution),
-                              remaining: quote.remaining,
+                      <p>{m['dance.inline.note']()}</p>
+                    </fieldset>
+                  )}
+                  {(!quote || quote.canContinue) && (
+                    <div className="dance-cost-summary" aria-live="polite">
+                      <p>
+                        {!quote
+                          ? m['dance.quote.check']()
+                          : m['dance.flow.use_count']({
+                              count: Math.floor(
+                                quote.remaining / danceCreditCost(resolution)
+                              ),
                             })}
-                    </p>
-                    {quote && !quote.canContinue && (
-                      <p>{m['dance.guide.cost_note']()}</p>
-                    )}
-                  </div>
+                      </p>
+                      {quote?.canContinue && (
+                        <small>
+                          {m['dance.flow.credit_detail']({
+                            credits: danceCreditCost(resolution),
+                            remaining: quote.remaining,
+                          })}
+                        </small>
+                      )}
+                    </div>
+                  )}
+                  <p className="dance-flow-spec">{m['dance.output.spec']()}</p>
+                  <p className="dance-flow-spec">
+                    {m['dance.flow.template_note']()}
+                  </p>
                   <label className="dance-consent">
                     <input
                       type="checkbox"
@@ -1093,21 +1323,13 @@ export function DanceStudio() {
                     {t('consent')}
                   </label>
 
-                  <p className="dance-readiness" aria-live="polite">
-                    {reading
-                      ? t('reading')
-                      : photos.every(Boolean)
-                        ? consent
-                          ? t('ready')
-                          : t('needconsent')
-                        : t('needphotos')}
-                  </p>
                   <div className="dance-checkout-row">
                     <div>
                       <Button
                         className="dance-primary"
                         disabled={
                           previewOnly ||
+                          paymentUnconfirmed ||
                           session.isPending ||
                           !consent ||
                           !photos.every(Boolean) ||
@@ -1119,35 +1341,38 @@ export function DanceStudio() {
                       >
                         {previewOnly
                           ? m['dance.coming_soon']()
-                          : create.isPending || preparing
-                            ? t('checking')
-                            : !consent
-                              ? m['dance.guide.consent']()
-                              : !session.data?.user
-                                ? m['dance.guide.signin']()
-                                : quote?.canContinue
-                                  ? m['dance.generate']({
-                                      credits: danceCreditCost(resolution),
+                          : paymentUnconfirmed
+                            ? m['dance.flow.pending']()
+                            : create.isPending || preparing
+                              ? t('checking')
+                              : !consent
+                                ? m['dance.guide.consent']()
+                                : !session.data?.user
+                                  ? m['dance.inline.signin']({
+                                      price: quotePrice(selectedPlan.cents),
                                     })
-                                  : quote
-                                    ? m['dance.guide.charge']({
-                                        price: quotePrice(quote.cents),
-                                      })
-                                    : m['dance.quote.check']()}{' '}
+                                  : quote?.canContinue
+                                    ? m['dance.flow.generate_one']()
+                                    : quote
+                                      ? m['dance.guide.charge']({
+                                          price: quotePrice(selectedPlan.cents),
+                                        })
+                                      : m['dance.quote.check']()}{' '}
                         <ArrowUpRight size={18} />
                       </Button>
-                      <small>{t('nopay')}</small>
-                      {credits.data && (
-                        <small>
-                          {m['dance.balance']()}: {credits.data.balance}{' '}
-                          {m['dance.credits']()}
-                        </small>
-                      )}
+
                       {settings.data?.simulation && (
                         <small>{t('sandbox')}</small>
                       )}
                     </div>
                   </div>
+                  <p className="dance-flow-footnote">
+                    {paymentUnconfirmed
+                      ? m['dance.flow.payment_safe']()
+                      : quote?.canContinue
+                        ? m['dance.flow.no_auto']()
+                        : m['dance.flow.login_next']()}
+                  </p>
                   {error && (
                     <p className="dance-error" role="alert">
                       <AlertCircle size={16} />
@@ -1434,10 +1659,12 @@ export function DanceStudio() {
         )}
 
         <DanceTrend />
-        <DancePricing
-          resolution={resolution}
-          beforeCheckout={saveCurrentDraft}
-        />
+        {!paymentUnconfirmed && (
+          <DancePricing
+            resolution={resolution}
+            beforeCheckout={saveCurrentDraft}
+          />
+        )}
         <section id="how" className="dance-how">
           <p className="dance-eyebrow">{t('how')}</p>
           <h2>{t('howtitle')}</h2>
@@ -1474,68 +1701,15 @@ export function DanceStudio() {
             description={m['dance.loginbody']()}
           >
             <Suspense fallback={<p>{t('loading')}</p>}>
-              <SignInForm embedded returnTo="/?resume=1#studio" />
+              <SignInForm
+                embedded
+                returnTo={
+                  paymentReturn
+                    ? '/?resume=1&payment=review#studio'
+                    : '/?resume=1#studio'
+                }
+              />
             </Suspense>
-          </DanceDialog>
-        )}
-        {purchaseOpen && (
-          <DanceDialog
-            open={purchaseOpen}
-            onOpenChange={(open) => {
-              if (!open)
-                trackDance('dance_purchase_closed', {
-                  resolution,
-                  reason: 'dismissed',
-                  stage: 'purchase',
-                });
-              setPurchaseOpen(open);
-            }}
-            className="dance-purchase-dialog"
-            title={m['dance.continuepurchase']()}
-            description={m['dance.savedcast']()}
-          >
-            <div className="dance-purchase-cast" data-clarity-mask="true">
-              {previews.map(
-                (photo, i) =>
-                  photo && (
-                    <figure key={i}>
-                      <img src={photo} alt={t(roles[i])} />
-                      <figcaption>
-                        {t(roles[i])}
-                        {!photos[i] && <> · {m['dance.defaultcharacter']()}</>}
-                      </figcaption>
-                    </figure>
-                  )
-              )}
-              <span>
-                {resolution.toLowerCase()} · {danceCreditCost(resolution)}{' '}
-                {m['dance.credits']()}
-              </span>
-            </div>
-            <DancePricing
-              beforeCheckout={saveCurrentDraft}
-              forGeneration
-              requiredCredits={danceCreditCost(resolution)}
-              resolution={resolution}
-              onContinue={() => {
-                setPurchaseOpen(false);
-                void generate();
-              }}
-            />
-            <Button
-              variant="ghost"
-              className="dance-purchase-back"
-              onClick={() => {
-                trackDance('dance_purchase_closed', {
-                  resolution,
-                  reason: 'back_to_studio',
-                  stage: 'purchase',
-                });
-                setPurchaseOpen(false);
-              }}
-            >
-              {m['dance.purchase.back']()}
-            </Button>
           </DanceDialog>
         )}
         {!!deleteTarget && (

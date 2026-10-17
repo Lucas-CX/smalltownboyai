@@ -1350,11 +1350,21 @@
 
 /* Keep authentication and purchase within the video workspace. */
 .dance-flow-dialog {
+  --muted: var(--muted-foreground);
   max-height: calc(100dvh - 32px);
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-padding-bottom: 20px;
   overflow-wrap: anywhere;
+}
+.dance-flow-dialog .dance-muted {
+  color: var(--muted-foreground);
+}
+.dance-draft-notice {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 10px 0;
 }
 .dance-flow-heading {
   position: sticky;
@@ -2193,4 +2203,150 @@
     font-size: 12px;
     line-height: 1.5;
   }
+}
+
+.dance-inline-packs {
+  border: 0;
+  padding: 0;
+  margin: 0 0 1rem;
+  min-width: 0;
+}
+.dance-inline-packs legend {
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+.dance-inline-packs label {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.9rem;
+  margin-bottom: 0.65rem;
+  border: 1px solid var(--dance-border, #45483e);
+  border-radius: 12px;
+  cursor: pointer;
+}
+.dance-inline-packs label.is-selected {
+  border-color: #d3f56b;
+  background: #d3f56b10;
+}
+.dance-inline-packs span {
+  display: grid;
+  gap: 0.25rem;
+}
+.dance-inline-packs span:last-child {
+  text-align: right;
+}
+.dance-inline-packs small,
+.dance-inline-packs p {
+  font-size: 0.8rem;
+}
+.dance-inline-packs input {
+  accent-color: #d3f56b;
+}
+.dance-inline-packs input:focus-visible {
+  outline: 2px solid #d3f56b;
+  outline-offset: 3px;
+}
+
+/* Compact review stage: photos, pack and one primary action. */
+.dance-photos-ready .dance-upload {
+  height: 136px;
+}
+.dance-photos-ready .dance-photo-progress {
+  display: none;
+}
+.dance-photos-ready .dance-draft-notice {
+  font-size: 13px;
+  margin: 8px 0;
+}
+.dance-photos-ready .dance-upload-hint {
+  min-height: 28px;
+  padding: 4px;
+}
+.dance-photos-ready .dance-photo-frame {
+  min-height: 0;
+}
+.dance-photos-ready .dance-cast-options {
+  margin-top: 16px;
+}
+.dance-photo-specs {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 12px 0;
+}
+.dance-photo-specs summary {
+  cursor: pointer;
+}
+.dance-payment-review {
+  padding: 20px;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: #1b1e13;
+}
+.dance-payment-review.is-confirmed {
+  border-color: #d3f56b;
+}
+.dance-payment-review > svg {
+  color: #d3f56b;
+}
+.dance-payment-review p {
+  line-height: 1.6;
+}
+.dance-payment-review a {
+  display: inline-block;
+  margin-left: 14px;
+  text-decoration: underline;
+}
+.dance-flow-spec,
+.dance-flow-footnote {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 12px 0;
+}
+.dance-entry-price {
+  font-size: 14px;
+  color: var(--muted);
+}
+.dance-cost-summary small {
+  display: block;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.dance-consent {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.dance-inline-packs label {
+  min-height: 70px;
+}
+@media (max-width: 640px) {
+  .dance-cast-first .dance-photos-ready .dance-upload {
+    height: 126px;
+  }
+  .dance-photos-ready .dance-role {
+    font-size: 12px;
+    padding: 4px 2px;
+  }
+  .dance-payment-review {
+    padding: 16px;
+  }
+  .dance-input-panel .dance-consent {
+    font-size: 14px;
+  }
+}
+
+.dance-photos-ready .dance-upload-slot > p:first-child {
+  display: none;
+}
+.dance-photos-ready .dance-swap-roles {
+  margin: 6px 0 0;
+  padding: 6px 12px;
+  min-height: 36px;
+}
+.dance-photos-ready .dance-cast-options {
+  padding-top: 12px;
+  margin-top: 10px;
 }

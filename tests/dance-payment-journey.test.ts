@@ -5,6 +5,8 @@ import { createClient } from '@libsql/client';
 import sharp from 'sharp';
 import Stripe from 'stripe';
 
+import { reviewDancePayment } from '../src/lib/dance-payment-review';
+
 // Isolated application integration: real services/SQLite/signatures, fake Stripe
 // transport and simulated video worker. No production keys, account or network.
 mkdirSync('data/tests', { recursive: true });
@@ -141,7 +143,7 @@ test('isolated purchase → signed confirmation → credit grant → generation,
         });
         await assert.rejects(createDanceCheckout(args), /Pricing changed/);
         await sql.execute({
-          sql: 'UPDATE "order" SET amount=790,credits_amount=150 WHERE user_id=?',
+          sql: 'UPDATE "order" SET amount=890,credits_amount=150 WHERE user_id=?',
           args: [userId],
         });
       }
@@ -161,7 +163,7 @@ test('isolated purchase → signed confirmation → credit grant → generation,
       assert.equal(intent[0].status, 'pending');
       assert.equal(
         Number(intent[0].amount),
-        { single: 790, friends: 1990, collection: 2990 }[pack]
+        { single: 890, friends: 2390, collection: 3690 }[pack]
       );
       assert.match(String(intent[0].product_name), /720p video/);
       const session = sessions.get(String(intent[0].payment_session_id))!;
@@ -191,6 +193,18 @@ test('isolated purchase → signed confirmation → credit grant → generation,
         deliver(paid),
       ]);
       assert.equal(results.filter(Boolean).length, 1);
+      const reviews = await Promise.all(
+        Array.from({ length: 3 }, () =>
+          reviewDancePayment({
+            userId,
+            sessionId: paid.id,
+            live: false,
+            retrieve: async () => paid,
+            fulfill: fulfillDanceCheckout,
+          })
+        )
+      );
+      assert.deepEqual(reviews, ['confirmed', 'confirmed', 'confirmed']);
       assert.equal(
         await balance(userId),
         seed + { single: 150, friends: 450, collection: 750 }[pack]

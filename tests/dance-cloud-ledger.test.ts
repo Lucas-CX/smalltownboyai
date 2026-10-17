@@ -180,9 +180,9 @@ test('720p packs cover exactly the advertised videos without a leftover balance'
   assert.deepEqual(
     dancePlans.map((p) => [p.cents, p.credits, p.videos]),
     [
-      [790, 150, 1],
-      [1990, 450, 3],
-      [2990, 750, 5],
+      [890, 150, 1],
+      [2390, 450, 3],
+      [3690, 750, 5],
     ]
   );
   for (const plan of dancePlans) {
