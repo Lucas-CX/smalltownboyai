@@ -3,35 +3,60 @@ import { access, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { readDanceReference, readPrivate } from '@/core/storage/dance-private';
 import { danceTemplate } from '@/lib/dance-template';
 
-import { danceCallbackUrl } from './dance-callback';
 import { DANCE_PROMPT_VERSION, KieDanceClient } from './dance-kie';
 
 // Operator-created local permit. Never derived from a browser field or an order number.
 const directory = 'data/dance-acceptance';
-export async function realDancePermit(userId: string, resolution: string) {
-  if (process.env.DANCE_GENERATION_MODE !== 'kie') return;
-  const permit = JSON.parse(await readFile(`${directory}/permit.json`, 'utf8'));
+// Kie bills reference + output seconds at 16 credits/s for 720P.
+export const LOCAL_TEST_CREDITS =
+  (danceTemplate.durationSeconds + danceTemplate.outputSeconds) * 16;
+export function validateRealDancePermit(
+  permit: any,
+  userId: string,
+  resolution: string,
+  now = Date.now()
+) {
   if (
+    !permit ||
     permit.userId !== userId ||
-    resolution !== '480P' ||
+    resolution !== '720P' ||
+    permit.resolution !== resolution ||
     permit.maxCalls !== 1 ||
-    permit.budgetCents !== 150 ||
+    !Number.isInteger(permit.budgetCents) ||
+    permit.budgetCents < LOCAL_TEST_CREDITS / 2 ||
+    permit.budgetCents > 300 ||
     permit.templateVersion !== danceTemplate.version ||
-    permit.expiresAt < Date.now() ||
+    !Number.isFinite(permit.expiresAt) ||
+    permit.expiresAt <= now ||
+    typeof permit.id !== 'string' ||
     !/^[a-f0-9-]{36}$/.test(permit.id)
   )
     throw new Error('Real test authorization unavailable');
+  return permit as {
+    id: string;
+    userId: string;
+    resolution: '720P';
+    maxCalls: 1;
+    budgetCents: number;
+    expiresAt: number;
+  };
+}
+export async function realDancePermit(userId: string, resolution: string) {
+  if (process.env.DANCE_GENERATION_MODE !== 'kie') return;
+  if (
+    process.env.NODE_ENV === 'production' ||
+    process.env.DANCE_SANDBOX !== 'true'
+  )
+    throw new Error('Real test requires local sandbox');
+  const permit = validateRealDancePermit(
+    JSON.parse(await readFile(`${directory}/permit.json`, 'utf8')),
+    userId,
+    resolution
+  );
   try {
     await access(`${directory}/${permit.id}.lock`);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT')
-      return permit as {
-        id: string;
-        userId: string;
-        maxCalls: number;
-        budgetCents: number;
-        expiresAt: number;
-      };
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return permit;
     throw error;
   }
   throw new Error(
@@ -43,12 +68,12 @@ export async function submitRealDance(
   job: { id: string; userId: string; resolution: string; photos: string },
   key: string
 ) {
-  const callbackUrl = danceCallbackUrl(job.id);
   const permit = await realDancePermit(job.userId, job.resolution);
   if (!permit || !key) throw new Error('Real test configuration missing');
   const client = new KieDanceClient(key);
   const balance = await client.balance();
-  if (balance < 240) throw new Error('Insufficient provider balance');
+  if (balance < LOCAL_TEST_CREDITS)
+    throw new Error('Insufficient provider balance');
   // Consume the single authorization BEFORE external side effects. A crash/timeout never resubmits.
   await mkdir(directory, { recursive: true });
   await writeFile(
@@ -56,7 +81,8 @@ export async function submitRealDance(
     JSON.stringify({
       jobId: job.id,
       authorizedCents: permit.budgetCents,
-      estimatedCents: 120,
+      estimatedCents: LOCAL_TEST_CREDITS / 2,
+      resolution: permit.resolution,
       templateVersion: danceTemplate.version,
       promptVersion: DANCE_PROMPT_VERSION,
       balanceBefore: balance,
@@ -91,7 +117,9 @@ export async function submitRealDance(
     images.push(payload.data.downloadUrl);
   }
   const reference = await client.uploadReference(await readDanceReference());
-  return client.submit(images, reference, '480P', callbackUrl);
+  // localhost cannot receive Kie's HTTPS callbacks. The local UI advances
+  // this scoped task using the existing bounded polling; Workers keep callbacks.
+  return client.submit(images, reference, permit.resolution);
 }
 
 export { downloadDanceResult } from './dance-result';
