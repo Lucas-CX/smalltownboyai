@@ -4,77 +4,162 @@
     {
       "file": "2026-10-14-operations.md",
       "local_source": "output/operations-2026-10-14/report.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "f1a339a0bedc5e79061c1215acc7d3ca5a74d9ea262cc4fa49839649eb1b3765",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-14-gsc.md",
       "local_source": "output/gsc-2026-10-14/report.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "b5bb28e6c0891bf005582aa45d0f924d405aa3c60e31f0e60c6fcb9aa311235e",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-17-geo.md",
       "local_source": "output/geo-audit-2026-10-17.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "040b36a70972879dee5d598ccbbca881c02b2d0895cccf428f61e05d1f360302",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-17-competitors.md",
       "local_source": "output/competitors-2026-10-17/README.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "75ff68a0e97a0367f391381cda4a8847eb00637624bc7a9dd1f4092739d358f2",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-17-ux-audit.md",
       "local_source": "output/ux-audit-2026-10-17/report.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "d3f589c3a41aed474ecb3bcba05acd97b57fc1f2ed31887d29269d96ca2e6e2b",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-17-production-verification.md",
       "local_source": "output/production-ux-verification.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "069135b4065253d92b0d6f7e8d570b7bbde4f24b0b7e442331a12f311600126a",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-18-local-e2e.md",
       "local_source": "output/real-e2e/report.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "f91d1df57abae9717b5cca6ab08725c732aadd6ff9efc61dbcdb2db1252fa72a",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-18-mobile-verification.md",
       "local_source": "output/real-e2e/unified-mobile-verification.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "a8a9e90048591a63a63c29c129ea2a62244fd6cffd0e71130e71d19a9a8c1b15",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "undated-login-verification.md",
       "local_source": "output/login-task-verification.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "7449833f4fdfa949e3b25c33146454457c651447fc39ae7b263d4cbecbca710f",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "undated-ux-verification.md",
       "local_source": "output/ux-flow-validation.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "37fb6723021de5898f7b3dcb122a5777f482392fe55fb08e51c12c12939a6221",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-13-release-verification.md",
       "local_source": "output/copy-release-acceptance.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "5ebe1134227063d4a68cbcbf378e0ae985e97b6bb2025c69c919bfd74ace35c9",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-15-attribution-release.md",
       "local_source": "output/operations-2026-10-14/followup-delivery.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "ea721620788617a45f5de5a697dfb3cd6cef46b5d9705fd141dc34a0b2a1e44a",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-12-indexing.md",
       "local_source": "output/indexing-2026-10-12/result.md",
-      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations.",
+      "source_sha256": "7638497a34c57ea14e01ed3fb266e919a44553b07b3929fab751c62724986507",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-17-operations.md",
       "local_source": "output/operations-2026-10-17/sources.json",
-      "transformation": "Narrative summary; no individual record identifiers or payment timestamps."
+      "transformation": "Narrative summary; no individual record identifiers or payment timestamps.",
+      "source_sha256": "0c7b2483b97c2bbd00e7516aad33c006691a70648bddfdb1fdbc9a17bd0258a0",
+      "source_hash_recorded_on": "2026-10-18"
     },
     {
       "file": "2026-10-17-operations-aggregates.json",
       "local_source": "output/operations-2026-10-17/sources.json",
-      "transformation": "Allowlisted aggregate datasets and summed live customer orders only."
+      "transformation": "Allowlisted aggregate datasets and summed live customer orders only.",
+      "source_sha256": "0c7b2483b97c2bbd00e7516aad33c006691a70648bddfdb1fdbc9a17bd0258a0",
+      "source_hash_recorded_on": "2026-10-18"
+    },
+    {
+      "file": "2026-10-12-seo-geo-audit.md",
+      "local_source": "output/seo-audit-2026-10-12/GEO-AUDIT-REPORT.md",
+      "transformation": "Historical report; remove crawler IP, request and internal deployment identifiers.",
+      "source_sha256": "ec9cd2f9215ba2648a4030c1c63371846de6e27b781c7b2d2b75c48347d82d3e",
+      "source_hash_recorded_on": "2026-10-18"
+    },
+    {
+      "file": "2026-10-12-googlebot-investigation.md",
+      "local_source": "output/seo-audit-2026-10-12/googlebot-cloudflare-investigation.md",
+      "transformation": "Historical report; remove crawler IP, request and internal deployment identifiers.",
+      "source_sha256": "040e9f3168aeefc16f63369b37f356ac57214e3b487364a58b184568e46a1520",
+      "source_hash_recorded_on": "2026-10-18"
+    },
+    {
+      "file": "2026-10-12-gsc-followup.md",
+      "local_source": "output/seo-audit-2026-10-12/gsc-followup-1306.md",
+      "transformation": "Historical report; remove crawler IP, request and internal deployment identifiers.",
+      "source_sha256": "e9483df675861f0e171ea01a65293b2de62e38db863963d14810165d63eb191a",
+      "source_hash_recorded_on": "2026-10-18"
+    },
+    {
+      "file": "2026-10-12-robots-investigation.md",
+      "local_source": "output/seo-audit-2026-10-12/gsc-robots-version-investigation.md",
+      "transformation": "Historical report; remove crawler IP, request and internal deployment identifiers.",
+      "source_sha256": "057e9da4f2fdb3944369d409b8506df7c0d5f8a94c351f749b858932875fe845",
+      "source_hash_recorded_on": "2026-10-18"
+    },
+    {
+      "file": "2026-10-14-funnel-aggregates.json",
+      "local_source": "output/operations-2026-10-14/funnel-data.json",
+      "transformation": "Allowlist daily/event totals; collapse playback error groups; remove geography, device detail, raw params, SQL and infrastructure metadata.",
+      "source_sha256": "ede49462a0248e2318538602a3e2852e0d83e9909af5979c033f097da7483724",
+      "source_hash_recorded_on": "2026-10-18"
+    },
+    {
+      "file": "2026-10-14-gsc-results.json",
+      "local_source": "output/gsc-2026-10-14/results.json",
+      "transformation": "Allowlist public paths, observed indexing/request states and sitemap results.",
+      "source_sha256": "30c2e7aecf646b21f47184d88419154c022d2899bbaa9c585cc637cadaab8ce0",
+      "source_hash_recorded_on": "2026-10-18"
+    },
+    {
+      "file": "2026-10-12-public-crawl.json",
+      "local_source": "output/seo-audit-2026-10-12/crawl.json",
+      "transformation": "Allowlist public page URL, HTTP status and SEO fields; exclude response headers, HTML and telemetry.",
+      "source_sha256": "e24f3e910b83edaae7d2321ab8a171400b8fc8dd64b53f5c47f0789db6ba8c48",
+      "source_hash_recorded_on": "2026-10-18"
+    },
+    {
+      "file": "2026-10-18-workspace-review.md",
+      "local_source": "git:384c973; git:2e605df; sibling release.log; local filesystem comparison",
+      "transformation": "New read-only directory comparison; only folder basenames and public Git identities retained."
     }
-  ]
+  ],
+  "provenance_note": "Hashes identify local source bytes at archival time, not independent verification of historical observations. Report-derived claims remain historical."
 }

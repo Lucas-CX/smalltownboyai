@@ -1,0 +1,90 @@
+{
+  "observed_at": "2026-10-14 13:10 approximately",
+  "timezone": "Asia/Shanghai",
+  "source": "output/operations-2026-10-14/funnel-data.json",
+  "limitations": [
+    "Partial day; historical snapshot, not refreshed.",
+    "Excludes complete administrator, diagnostic, mock, stripe-test and test-email flows. Anonymous internal traffic may remain.",
+    "Flow is not a person; cross-day counts cannot be summed as unique people. Event totals are not a time-ordered funnel."
+  ],
+  "daily": [
+    {
+      "day": "2026-10-12",
+      "events": 28,
+      "flows": 14
+    },
+    {
+      "day": "2026-10-13",
+      "events": 23,
+      "flows": 9
+    },
+    {
+      "day": "2026-10-14",
+      "events": 8,
+      "flows": 8
+    }
+  ],
+  "events": [
+    {
+      "event": "dance_auth_started",
+      "events": 1,
+      "flows": 1
+    },
+    {
+      "event": "dance_login_required",
+      "events": 1,
+      "flows": 1
+    },
+    {
+      "event": "dance_pack_selected",
+      "events": 1,
+      "flows": 1
+    },
+    {
+      "event": "dance_photo_picker_canceled",
+      "events": 1,
+      "flows": 1
+    },
+    {
+      "event": "dance_photo_picker_opened",
+      "events": 3,
+      "flows": 2
+    },
+    {
+      "event": "dance_photo_ready",
+      "events": 2,
+      "flows": 1
+    },
+    {
+      "event": "dance_photo_selected",
+      "events": 2,
+      "flows": 1
+    },
+    {
+      "event": "dance_quote_viewed",
+      "events": 2,
+      "flows": 1
+    },
+    {
+      "event": "dance_resolution_changed",
+      "events": 1,
+      "flows": 1
+    },
+    {
+      "event": "dance_studio_viewed",
+      "events": 42,
+      "flows": 30
+    },
+    {
+      "event": "dance_video_failed",
+      "events": 3,
+      "flows": 3
+    }
+  ],
+  "sample_playback_errors": {
+    "stage": "example",
+    "reason": "video_unsupported",
+    "events": 3,
+    "limitation": "Reported sample errors, not paid generation failures; not reproduced by this archive."
+  }
+}

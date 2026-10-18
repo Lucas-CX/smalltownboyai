@@ -32,4 +32,18 @@
 
 ## 未归档范围
 
-下载的竞品/社交媒体素材及候选清单、客户支持和故障原始材料、部署输出、配置备份、临时脚本、重复日志未上传。早期 SEO 调查由本档案的索引时间线及现有 docs/SEO-RELEASE-GATE.md、docs/seo/ai-visibility-measurement.md 承接；需要原始证据时在授权本地环境读取。此档案不是对 output 的完整复制。
+下载的竞品/社交媒体素材及候选清单、客户支持和故障原始材料、部署输出、配置备份、临时脚本、重复日志未上传。早期 SEO/GSC 调查已补充脱敏报告和公开页面抓取字段；需要原始证据时在授权本地环境读取。此档案不是对 output 的完整复制。
+
+## 补充归档与复盘方法
+
+- [2026-10-12-seo-geo-audit.md](2026-10-12-seo-geo-audit.md)
+- [2026-10-12-googlebot-investigation.md](2026-10-12-googlebot-investigation.md)
+- [2026-10-12-gsc-followup.md](2026-10-12-gsc-followup.md)
+- [2026-10-12-robots-investigation.md](2026-10-12-robots-investigation.md)
+- [2026-10-14-funnel-aggregates.json](2026-10-14-funnel-aggregates.json)
+- [2026-10-14-gsc-results.json](2026-10-14-gsc-results.json)
+- [2026-10-12-public-crawl.json](2026-10-12-public-crawl.json)
+- [2026-10-18-workspace-review.md](2026-10-18-workspace-review.md)
+- [复盘归档规范](RETROSPECTIVE-GUIDE.md)
+
+来源与转换说明见 [manifest.json](manifest.json)。源文件哈希是本轮整理时计算，历史结论未因此重新验证。

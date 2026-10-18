@@ -1,0 +1,211 @@
+{
+  "observed_on": "2026-10-12",
+  "timezone": "Asia/Shanghai",
+  "source": "output/seo-audit-2026-10-12/crawl.json",
+  "limitations": [
+    "Synthetic HTTP observations are not verified Googlebot visits or indexing evidence.",
+    "Historical metadata and pricing may be outdated. Raw HTML, headers, cookies and telemetry endpoints excluded."
+  ],
+  "pages": [
+    {
+      "url": "https://smalltownboyai.video/",
+      "final_url": "https://smalltownboyai.video/",
+      "status": 200,
+      "title": "Smalltown Boy AI Dance Video Generator — Two Photos",
+      "lang": "en",
+      "h1": ["Smalltown Boy AI Dance Video Generator"],
+      "canonicals": ["https://smalltownboyai.video/"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": [
+        "Make a Smalltown Boy AI dance video from two photos. See the 14-second sample, choose your roles, and check the format and credit cost before generating."
+      ]
+    },
+    {
+      "url": "https://smalltownboyai.video/pricing",
+      "final_url": "https://smalltownboyai.video/pricing",
+      "status": 200,
+      "title": "Smalltown Boy AI Pricing — 720p Video Packs",
+      "lang": "en",
+      "h1": ["Choose your 720p video pack"],
+      "canonicals": ["https://smalltownboyai.video/pricing"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": [
+        "Make one 14-second 720p video for $7.90 USD. Choose one-time packs of 1, 3 or 5 videos. No subscription; failed generations restore credits."
+      ]
+    },
+    {
+      "url": "https://smalltownboyai.video/about",
+      "final_url": "https://smalltownboyai.video/about",
+      "status": 200,
+      "title": "About this video tool",
+      "lang": "en",
+      "h1": ["About this video tool"],
+      "canonicals": ["https://smalltownboyai.video/about"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": [
+        "Upload photos, choose an output resolution and track your video in your account. Review the required credits before generating."
+      ]
+    },
+    {
+      "url": "https://smalltownboyai.video/privacy-policy",
+      "final_url": "https://smalltownboyai.video/privacy-policy",
+      "status": 200,
+      "title": "Privacy Policy",
+      "lang": "en",
+      "h1": ["Privacy Policy"],
+      "canonicals": ["https://smalltownboyai.video/privacy-policy"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": [
+        "How photos, generated videos, account information and browser drafts are handled."
+      ]
+    },
+    {
+      "url": "https://smalltownboyai.video/terms-of-service",
+      "final_url": "https://smalltownboyai.video/terms-of-service",
+      "status": 200,
+      "title": "Terms of Service",
+      "lang": "en",
+      "h1": ["Terms of Service"],
+      "canonicals": ["https://smalltownboyai.video/terms-of-service"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": [
+        "Photo permissions, AI video limitations and conditions for using the service."
+      ]
+    },
+    {
+      "url": "https://smalltownboyai.video/refund-policy",
+      "final_url": "https://smalltownboyai.video/refund-policy",
+      "status": 200,
+      "title": "Payments & Refunds",
+      "lang": "en",
+      "h1": ["Payments & Refunds"],
+      "canonicals": ["https://smalltownboyai.video/refund-policy"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": [
+        "Credit restoration, payment availability and how to request help with an order."
+      ]
+    },
+    {
+      "url": "https://smalltownboyai.video/contact",
+      "final_url": "https://smalltownboyai.video/contact",
+      "status": 200,
+      "title": "Contact & Order Help",
+      "lang": "en",
+      "h1": ["Contact & Order Help"],
+      "canonicals": ["https://smalltownboyai.video/contact"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": ["Get help with a AI video, account or privacy request."]
+    },
+    {
+      "url": "https://smalltownboyai.video/zh",
+      "final_url": "https://smalltownboyai.video/zh",
+      "status": 200,
+      "title": "Smalltown Boy AI 视频生成器｜照片制作双人舞",
+      "lang": "zh",
+      "h1": ["Smalltown Boy AI 双人舞视频生成器"],
+      "canonicals": ["https://smalltownboyai.video/zh"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": [
+        "用两张照片制作 Smalltown Boy AI 双人舞视频。查看 14 秒样例、确认角色顺序与输出规格，了解积分费用、音轨差异和下载期限后再生成。"
+      ]
+    },
+    {
+      "url": "https://smalltownboyai.video/zh/pricing",
+      "final_url": "https://smalltownboyai.video/zh/pricing",
+      "status": 200,
+      "title": "Smalltown Boy AI 定价 — 720p 视频套餐",
+      "lang": "zh",
+      "h1": ["选择你的 720p 视频套餐"],
+      "canonicals": ["https://smalltownboyai.video/zh/pricing"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": [
+        "$7.90 美元制作一条 14 秒 720p 视频。可选 1、3 或 5 条一次性套餐，无订阅，确认生成失败返还积分。"
+      ]
+    },
+    {
+      "url": "https://smalltownboyai.video/zh/about",
+      "final_url": "https://smalltownboyai.video/zh/about",
+      "status": 200,
+      "title": "关于视频生成工具",
+      "lang": "zh",
+      "h1": ["关于视频生成工具"],
+      "canonicals": ["https://smalltownboyai.video/zh/about"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": [
+        "上传照片、选择输出分辨率，并在账号中查看视频状态。生成前请确认所需积分。"
+      ]
+    },
+    {
+      "url": "https://smalltownboyai.video/zh/privacy-policy",
+      "final_url": "https://smalltownboyai.video/zh/privacy-policy",
+      "status": 200,
+      "title": "隐私政策",
+      "lang": "zh",
+      "h1": ["隐私政策"],
+      "canonicals": ["https://smalltownboyai.video/zh/privacy-policy"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": ["了解照片、生成视频、账号信息和浏览器草稿的处理方式。"]
+    },
+    {
+      "url": "https://smalltownboyai.video/zh/terms-of-service",
+      "final_url": "https://smalltownboyai.video/zh/terms-of-service",
+      "status": 200,
+      "title": "服务条款",
+      "lang": "zh",
+      "h1": ["服务条款"],
+      "canonicals": ["https://smalltownboyai.video/zh/terms-of-service"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": ["照片使用许可、AI 视频效果限制与服务使用条件。"]
+    },
+    {
+      "url": "https://smalltownboyai.video/zh/refund-policy",
+      "final_url": "https://smalltownboyai.video/zh/refund-policy",
+      "status": 200,
+      "title": "付款与退款说明",
+      "lang": "zh",
+      "h1": ["付款与退款说明"],
+      "canonicals": ["https://smalltownboyai.video/zh/refund-policy"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": ["了解积分退回、付款状态，以及订单问题的处理方式。"]
+    },
+    {
+      "url": "https://smalltownboyai.video/zh/contact",
+      "final_url": "https://smalltownboyai.video/zh/contact",
+      "status": 200,
+      "title": "联系与订单帮助",
+      "lang": "zh",
+      "h1": ["联系与订单帮助"],
+      "canonicals": ["https://smalltownboyai.video/zh/contact"],
+      "robots": [
+        "index, follow, max-video-preview:-1, max-image-preview:large"
+      ],
+      "description": ["获取AI 视频、账号和隐私请求的帮助。"]
+    }
+  ]
+}

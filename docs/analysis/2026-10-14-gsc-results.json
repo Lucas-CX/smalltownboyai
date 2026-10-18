@@ -1,0 +1,85 @@
+{
+  "date": "2026-10-14",
+  "property": "sc-domain:smalltownboyai.video",
+  "sitemap": {
+    "submitted": "2026-10-14",
+    "lastRead": "2026-10-14",
+    "status": "成功",
+    "discoveredPages": 26
+  },
+  "pages": [
+    {
+      "path": "/guides",
+      "indexed": false,
+      "reason": "Google 无法识别此网址",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/how-to-make-smalltown-boy-ai-video",
+      "indexed": false,
+      "reason": "Google 无法识别此网址",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/smalltown-boy-sample",
+      "indexed": false,
+      "reason": "Google 无法识别此网址",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/smalltown-boy-cat-dance",
+      "indexed": false,
+      "reason": "Google 无法识别此网址",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/smalltown-boy-photo-guide",
+      "indexed": false,
+      "reason": "Google 无法识别此网址",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/smalltown-boy-video-options",
+      "indexed": false,
+      "reason": "已发现 - 尚未编入索引",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/zh/guides",
+      "indexed": false,
+      "reason": "已发现 - 尚未编入索引",
+      "request": "提交出错，待重试"
+    },
+    {
+      "path": "/zh/how-to-make-smalltown-boy-ai-video",
+      "indexed": false,
+      "reason": "已发现 - 尚未编入索引",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/zh/smalltown-boy-sample",
+      "indexed": false,
+      "reason": "已发现 - 尚未编入索引",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/zh/smalltown-boy-cat-dance",
+      "indexed": false,
+      "reason": "已发现 - 尚未编入索引",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/zh/smalltown-boy-photo-guide",
+      "indexed": false,
+      "reason": "已发现 - 尚未编入索引",
+      "request": "已请求编入索引"
+    },
+    {
+      "path": "/zh/smalltown-boy-video-options",
+      "indexed": false,
+      "reason": "已发现 - 尚未编入索引",
+      "request": "Google 每日配额已满"
+    }
+  ],
+  "limitation": "Observed state only. A successful request or sitemap discovery is not proof of indexing. Not rechecked during archival."
+}
