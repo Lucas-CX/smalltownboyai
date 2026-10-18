@@ -1,0 +1,235 @@
+{
+  "archived_on": "2026-10-18",
+  "observed_cutoff": "2026-10-17 15:42 approximately",
+  "backend_timezone": "Asia/Shanghai",
+  "platform_timezone": "GA4/GSC property timezone unverified",
+  "local_source": "output/operations-2026-10-17/sources.json",
+  "privacy": "Aggregate-only export. Individual orders, jobs, credit ledgers, exact payment times, identifiers, SQL and infrastructure metadata excluded. Small cohort totals are retained for historical business analysis; no row-level customer data.",
+  "datasets": [
+    {
+      "id": "ga4",
+      "source": "GA4 smalltownboyai.video",
+      "period": ["2026-10-10 至 2026-10-16", "所有用户"],
+      "limitations": [
+        "GA4 属性时区未核实，内部流量排除未证实。渠道为会话来源，不能用于给真实付款归因。"
+      ],
+      "columns": ["metric", "value"],
+      "rows": [
+        {
+          "metric": "活跃用户",
+          "value": 75
+        },
+        {
+          "metric": "平均互动秒数",
+          "value": 46
+        },
+        {
+          "metric": "直接会话",
+          "value": 63
+        },
+        {
+          "metric": "Google 自然搜索会话",
+          "value": 17
+        },
+        {
+          "metric": "ChatGPT 标记会话",
+          "value": 4
+        },
+        {
+          "metric": "DuckDuckGo 自然搜索会话",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "id": "gsc",
+      "source": "Google Search Console",
+      "period": ["smalltownboyai.video", "网络搜索", "选择 7 天"],
+      "limitations": ["界面日表最新仅到 10 月 14 日，不能代表 15—17 日。"],
+      "columns": ["day", "clicks", "impressions"],
+      "rows": [
+        {
+          "day": "2026-10-12",
+          "clicks": 0,
+          "impressions": 6
+        },
+        {
+          "day": "2026-10-13",
+          "clicks": 4,
+          "impressions": 36
+        },
+        {
+          "day": "2026-10-14",
+          "clicks": 7,
+          "impressions": 69
+        }
+      ]
+    },
+    {
+      "id": "users",
+      "source": "生产 D1",
+      "period": "现存记录截至 2026-10-17 15:42 左右（北京时间）",
+      "limitations": ["后台日期为北京时间；查询为只读；当前日尚未结束。"],
+      "columns": ["day", "customers"],
+      "rows": [
+        {
+          "day": "2026-10-16",
+          "customers": 1
+        },
+        {
+          "day": "2026-10-17",
+          "customers": 5
+        }
+      ]
+    },
+    {
+      "id": "daily",
+      "source": "生产 D1",
+      "period": "现存记录截至 2026-10-17 15:42 左右（北京时间）",
+      "limitations": ["后台日期为北京时间；查询为只读；当前日尚未结束。"],
+      "columns": [
+        "day",
+        "events",
+        "flows",
+        "studio",
+        "photo",
+        "checkout",
+        "payment"
+      ],
+      "rows": [
+        {
+          "day": "2026-10-12",
+          "events": 28,
+          "flows": 14,
+          "studio": 13,
+          "photo": 0,
+          "checkout": 0,
+          "payment": 0
+        },
+        {
+          "day": "2026-10-13",
+          "events": 23,
+          "flows": 9,
+          "studio": 9,
+          "photo": 1,
+          "checkout": 0,
+          "payment": 0
+        },
+        {
+          "day": "2026-10-14",
+          "events": 72,
+          "flows": 17,
+          "studio": 17,
+          "photo": 2,
+          "checkout": 0,
+          "payment": 0
+        },
+        {
+          "day": "2026-10-15",
+          "events": 25,
+          "flows": 9,
+          "studio": 9,
+          "photo": 2,
+          "checkout": 0,
+          "payment": 0
+        },
+        {
+          "day": "2026-10-16",
+          "events": 59,
+          "flows": 15,
+          "studio": 15,
+          "photo": 3,
+          "checkout": 0,
+          "payment": 0
+        },
+        {
+          "day": "2026-10-17",
+          "events": 247,
+          "flows": 19,
+          "studio": 19,
+          "photo": 11,
+          "checkout": 2,
+          "payment": 1
+        }
+      ]
+    },
+    {
+      "id": "sequence",
+      "source": "生产 D1",
+      "period": "现存记录截至 2026-10-17 15:42 左右（北京时间）",
+      "limitations": [
+        "已排除整条管理员、诊断与测试流程；匿名内部访问仍可能残留。flow 是浏览器流程，不是独立访客。按同一 flow 内事件时间顺序推进；照片就绪事件不保证两张照片均完成。"
+      ],
+      "columns": ["stage", "flows"],
+      "rows": [
+        {
+          "stage": "studio",
+          "flows": 81
+        },
+        {
+          "stage": "photo",
+          "flows": 19
+        },
+        {
+          "stage": "generate_click",
+          "flows": 6
+        },
+        {
+          "stage": "checkout",
+          "flows": 2
+        },
+        {
+          "stage": "paid",
+          "flows": 1
+        }
+      ]
+    },
+    {
+      "id": "sources",
+      "source": "生产 D1",
+      "period": "现存记录截至 2026-10-17 15:42 左右（北京时间）",
+      "limitations": ["后台日期为北京时间；查询为只读；当前日尚未结束。"],
+      "columns": ["utm_source", "flows"],
+      "rows": [
+        {
+          "utm_source": "unattributed",
+          "flows": 81
+        }
+      ]
+    },
+    {
+      "id": "clarity",
+      "source": "Clarity Smalltown Boy AI",
+      "period": ["界面过去 3 天，含未结束的当天"],
+      "limitations": [
+        "不与 GA4 会话合并；未用 100% 新用户来判断留存；无效点击尚未逐条复现。"
+      ],
+      "columns": ["metric", "value"],
+      "rows": [
+        {
+          "metric": "会话",
+          "value": 101
+        },
+        {
+          "metric": "另排除机器人会话",
+          "value": 9
+        },
+        {
+          "metric": "平均活动秒数",
+          "value": 31
+        },
+        {
+          "metric": "无效点击会话",
+          "value": 6
+        }
+      ]
+    }
+  ],
+  "order_summary": {
+    "currency": "usd",
+    "paid_orders": 1,
+    "paid_amount_cents": 790,
+    "pending_orders": 1,
+    "note": "Snapshot only; pending is not abandonment. Amount is received payment, not net profit. Delivery and processor fees are not deducted."
+  }
+}

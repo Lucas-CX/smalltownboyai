@@ -1,0 +1,80 @@
+{
+  "archived_on": "2026-10-18",
+  "entries": [
+    {
+      "file": "2026-10-14-operations.md",
+      "local_source": "output/operations-2026-10-14/report.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-14-gsc.md",
+      "local_source": "output/gsc-2026-10-14/report.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-17-geo.md",
+      "local_source": "output/geo-audit-2026-10-17.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-17-competitors.md",
+      "local_source": "output/competitors-2026-10-17/README.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-17-ux-audit.md",
+      "local_source": "output/ux-audit-2026-10-17/report.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-17-production-verification.md",
+      "local_source": "output/production-ux-verification.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-18-local-e2e.md",
+      "local_source": "output/real-e2e/report.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-18-mobile-verification.md",
+      "local_source": "output/real-e2e/unified-mobile-verification.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "undated-login-verification.md",
+      "local_source": "output/login-task-verification.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "undated-ux-verification.md",
+      "local_source": "output/ux-flow-validation.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-13-release-verification.md",
+      "local_source": "output/copy-release-acceptance.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-15-attribution-release.md",
+      "local_source": "output/operations-2026-10-14/followup-delivery.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-12-indexing.md",
+      "local_source": "output/indexing-2026-10-12/result.md",
+      "transformation": "Historical report; remove identifiers, private analytics links and attachment links; preserve evidence limitations."
+    },
+    {
+      "file": "2026-10-17-operations.md",
+      "local_source": "output/operations-2026-10-17/sources.json",
+      "transformation": "Narrative summary; no individual record identifiers or payment timestamps."
+    },
+    {
+      "file": "2026-10-17-operations-aggregates.json",
+      "local_source": "output/operations-2026-10-17/sources.json",
+      "transformation": "Allowlisted aggregate datasets and summed live customer orders only."
+    }
+  ]
+}
