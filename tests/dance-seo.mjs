@@ -102,14 +102,7 @@ for (const locale of ['en', 'zh']) {
         path === '/guides' ? /"@type":"CollectionPage"/ : /"@type":"Article"/,
         url
       );
-      const reviewedAt = [
-        '/guides',
-        '/smalltown-boy-sample',
-        '/smalltown-boy-video-options',
-        '/smalltown-boy-generator-comparison',
-      ].includes(path)
-        ? '2026-10-17'
-        : '2026-10-13';
+      const reviewedAt = path === '/guides' ? '2026-10-17' : '2026-10-18';
       assert.ok(
         html.includes(`"dateModified":"${reviewedAt}"`),
         url + ': content review date'
@@ -197,7 +190,9 @@ for (const locale of ['en', 'zh']) {
       );
       assert.match(
         html,
-        locale === 'en' ? /not an independent ranking/ : /不是独立排行榜/,
+        locale === 'en'
+          ? /not (?:paid output tests or )?an independent ranking/
+          : /不是独立排行榜|并非付费成片实测或独立排名/,
         url + ': comparison disclosure'
       );
     }
